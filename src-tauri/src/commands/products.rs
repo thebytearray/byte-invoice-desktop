@@ -30,7 +30,8 @@ pub fn get_products_impl(conn: &rusqlite::Connection) -> Result<Vec<Product>, St
         })
         .map_err(|e| e.to_string())?;
 
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -67,24 +68,39 @@ pub fn update_product(
     let conn = db.lock().map_err(|e| e.to_string())?;
 
     if let Some(v) = &updates.name {
-        conn.execute("UPDATE products SET name = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE products SET name = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.description {
-        conn.execute("UPDATE products SET description = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE products SET description = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.price.is_some() {
-        conn.execute("UPDATE products SET price = ?1 WHERE id = ?2", rusqlite::params![updates.price, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE products SET price = ?1 WHERE id = ?2",
+            rusqlite::params![updates.price, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.sku {
-        conn.execute("UPDATE products SET sku = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE products SET sku = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.category {
-        conn.execute("UPDATE products SET category = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE products SET category = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     Ok(())

@@ -1,7 +1,6 @@
 use lettre::{
-    message::header::ContentType,
-    transport::smtp::authentication::Credentials,
-    Message, SmtpTransport, Transport,
+    message::header::ContentType, transport::smtp::authentication::Credentials, Message,
+    SmtpTransport, Transport,
 };
 use serde::Deserialize;
 
@@ -42,37 +41,34 @@ pub fn send_email(payload: SendEmailPayload) -> Result<(), String> {
         .parse()
         .map_err(|e: lettre::address::AddressError| e.to_string())?;
 
-    let message = if let (Some(base64_data), Some(filename)) =
-        (payload.pdf_base64, payload.pdf_filename)
-    {
-        let pdf_bytes = base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            &base64_data,
-        )
-        .map_err(|e| format!("Invalid base64: {}", e))?;
+    let message =
+        if let (Some(base64_data), Some(filename)) = (payload.pdf_base64, payload.pdf_filename) {
+            let pdf_bytes =
+                base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &base64_data)
+                    .map_err(|e| format!("Invalid base64: {}", e))?;
 
-        let attachment = lettre::message::Attachment::new(filename)
-            .body(pdf_bytes, ContentType::parse("application/pdf").unwrap());
+            let attachment = lettre::message::Attachment::new(filename)
+                .body(pdf_bytes, ContentType::parse("application/pdf").unwrap());
 
-        Message::builder()
-            .from(from_addr)
-            .to(to_addr)
-            .subject(&payload.subject)
-            .multipart(
-                lettre::message::MultiPart::mixed()
-                    .singlepart(lettre::message::SinglePart::html(payload.html))
-                    .singlepart(attachment),
-            )
-            .map_err(|e| e.to_string())?
-    } else {
-        Message::builder()
-            .from(from_addr)
-            .to(to_addr)
-            .subject(&payload.subject)
-            .header(ContentType::TEXT_HTML)
-            .body(payload.html)
-            .map_err(|e| e.to_string())?
-    };
+            Message::builder()
+                .from(from_addr)
+                .to(to_addr)
+                .subject(&payload.subject)
+                .multipart(
+                    lettre::message::MultiPart::mixed()
+                        .singlepart(lettre::message::SinglePart::html(payload.html))
+                        .singlepart(attachment),
+                )
+                .map_err(|e| e.to_string())?
+        } else {
+            Message::builder()
+                .from(from_addr)
+                .to(to_addr)
+                .subject(&payload.subject)
+                .header(ContentType::TEXT_HTML)
+                .body(payload.html)
+                .map_err(|e| e.to_string())?
+        };
 
     let mailer = if payload.smtp.secure {
         SmtpTransport::relay(&payload.smtp.host)
@@ -87,7 +83,9 @@ pub fn send_email(payload: SendEmailPayload) -> Result<(), String> {
     ))
     .build();
 
-    mailer.send(&message).map_err(|e| format!("Send failed: {}", e))?;
+    mailer
+        .send(&message)
+        .map_err(|e| format!("Send failed: {}", e))?;
 
     Ok(())
 }

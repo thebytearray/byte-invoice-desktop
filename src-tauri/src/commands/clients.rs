@@ -38,7 +38,8 @@ pub fn get_clients_impl(conn: &rusqlite::Connection) -> Result<Vec<Client>, Stri
         })
         .map_err(|e| e.to_string())?;
 
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -71,48 +72,71 @@ pub fn add_client(db: State<DbState>, client: Client) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn update_client(
-    db: State<DbState>,
-    id: String,
-    updates: ClientUpdates,
-) -> Result<(), String> {
+pub fn update_client(db: State<DbState>, id: String, updates: ClientUpdates) -> Result<(), String> {
     let conn = db.lock().map_err(|e| e.to_string())?;
 
     if let Some(v) = &updates.name {
-        conn.execute("UPDATE clients SET name = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET name = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.email {
-        conn.execute("UPDATE clients SET email = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET email = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.phone.is_some() {
-        conn.execute("UPDATE clients SET phone = ?1 WHERE id = ?2", rusqlite::params![updates.phone, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET phone = ?1 WHERE id = ?2",
+            rusqlite::params![updates.phone, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.address {
-        conn.execute("UPDATE clients SET address = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET address = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.city {
-        conn.execute("UPDATE clients SET city = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET city = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.state {
-        conn.execute("UPDATE clients SET state = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET state = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.zip_code.is_some() {
-        conn.execute("UPDATE clients SET zipCode = ?1 WHERE id = ?2", rusqlite::params![updates.zip_code, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET zipCode = ?1 WHERE id = ?2",
+            rusqlite::params![updates.zip_code, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.country {
-        conn.execute("UPDATE clients SET country = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET country = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.advance_payment.is_some() {
-        conn.execute("UPDATE clients SET advancePayment = ?1 WHERE id = ?2", rusqlite::params![updates.advance_payment, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE clients SET advancePayment = ?1 WHERE id = ?2",
+            rusqlite::params![updates.advance_payment, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     Ok(())

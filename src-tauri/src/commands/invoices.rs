@@ -58,8 +58,24 @@ pub fn get_invoices_impl(conn: &rusqlite::Connection) -> Result<Vec<Invoice>, St
 
     let mut invoices = Vec::new();
     for row in rows {
-        let (id, inv_num, client_id, client_name, issue_date, due_date, subtotal, tax_rate, tax_amount, discount_rate, discount_amount, total, status, notes, email_sent, last_reminder) =
-            row.map_err(|e| e.to_string())?;
+        let (
+            id,
+            inv_num,
+            client_id,
+            client_name,
+            issue_date,
+            due_date,
+            subtotal,
+            tax_rate,
+            tax_amount,
+            discount_rate,
+            discount_amount,
+            total,
+            status,
+            notes,
+            email_sent,
+            last_reminder,
+        ) = row.map_err(|e| e.to_string())?;
 
         let mut item_stmt = conn
             .prepare("SELECT productId, productName, description, quantity, unitPrice, total FROM invoice_items WHERE invoiceId = ?1")
@@ -76,7 +92,9 @@ pub fn get_invoices_impl(conn: &rusqlite::Connection) -> Result<Vec<Invoice>, St
                 })
             })
             .map_err(|e| e.to_string())?;
-        let items: Vec<InvoiceItem> = item_rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
+        let items: Vec<InvoiceItem> = item_rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
 
         invoices.push(Invoice {
             id,
@@ -191,64 +209,109 @@ pub fn update_invoice(
     }
 
     if let Some(v) = &updates.invoice_number {
-        conn.execute("UPDATE invoices SET invoiceNumber = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET invoiceNumber = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.client_id {
-        conn.execute("UPDATE invoices SET clientId = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET clientId = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.client_name {
-        conn.execute("UPDATE invoices SET clientName = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET clientName = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.issue_date {
-        conn.execute("UPDATE invoices SET issueDate = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET issueDate = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.due_date {
-        conn.execute("UPDATE invoices SET dueDate = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET dueDate = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.subtotal {
-        conn.execute("UPDATE invoices SET subtotal = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET subtotal = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.tax_rate {
-        conn.execute("UPDATE invoices SET taxRate = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET taxRate = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.tax_amount {
-        conn.execute("UPDATE invoices SET taxAmount = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET taxAmount = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.discount_rate {
-        conn.execute("UPDATE invoices SET discountRate = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET discountRate = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.discount_amount {
-        conn.execute("UPDATE invoices SET discountAmount = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET discountAmount = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.total {
-        conn.execute("UPDATE invoices SET total = ?1 WHERE id = ?2", rusqlite::params![v, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET total = ?1 WHERE id = ?2",
+            rusqlite::params![v, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = &updates.status {
-        conn.execute("UPDATE invoices SET status = ?1 WHERE id = ?2", rusqlite::params![v.as_str(), id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET status = ?1 WHERE id = ?2",
+            rusqlite::params![v.as_str(), id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.notes.is_some() {
-        conn.execute("UPDATE invoices SET notes = ?1 WHERE id = ?2", rusqlite::params![updates.notes, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET notes = ?1 WHERE id = ?2",
+            rusqlite::params![updates.notes, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if let Some(v) = updates.email_sent {
-        conn.execute("UPDATE invoices SET emailSent = ?1 WHERE id = ?2", rusqlite::params![if v { 1 } else { 0 }, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET emailSent = ?1 WHERE id = ?2",
+            rusqlite::params![if v { 1 } else { 0 }, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
     if updates.last_reminder_sent.is_some() {
-        conn.execute("UPDATE invoices SET lastReminderSent = ?1 WHERE id = ?2", rusqlite::params![updates.last_reminder_sent, id])
-            .map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE invoices SET lastReminderSent = ?1 WHERE id = ?2",
+            rusqlite::params![updates.last_reminder_sent, id],
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     Ok(())

@@ -27,10 +27,10 @@ pub fn get_settings_impl(conn: &rusqlite::Connection) -> Result<AppSettings, Str
         let smtp_str: String = row.get(0).unwrap_or_else(|_| "{}".to_string());
         let templates_str: String = row.get(1).unwrap_or_else(|_| "[]".to_string());
 
-        let smtp: serde_json::Value = serde_json::from_str(&smtp_str).unwrap_or(serde_json::json!({}));
-        let templates: Vec<EmailTemplate> = serde_json::from_str(&templates_str).unwrap_or_else(|_| {
-            serde_json::from_str(DEFAULT_EMAIL_TEMPLATES).unwrap_or_default()
-        });
+        let smtp: serde_json::Value =
+            serde_json::from_str(&smtp_str).unwrap_or(serde_json::json!({}));
+        let templates: Vec<EmailTemplate> = serde_json::from_str(&templates_str)
+            .unwrap_or_else(|_| serde_json::from_str(DEFAULT_EMAIL_TEMPLATES).unwrap_or_default());
 
         Ok(AppSettings {
             smtp,

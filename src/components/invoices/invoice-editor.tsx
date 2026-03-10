@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Controller, useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { addDays, format } from 'date-fns'
@@ -192,10 +192,15 @@ export function InvoiceEditor({
 
   const { colorMode } = useColorMode()
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'items' })
-  const watchedItems = form.watch('items') ?? []
-  const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
-  const watchedTaxRate = form.watch('taxRate') || 0
-  const watchedDiscountRate = form.watch('discountRate') || 0
+  const rawItems = useWatch({ control: form.control, name: 'items' })
+  const watchedItems = useMemo(() => rawItems ?? [], [rawItems])
+  const watchedClientId = useWatch({ control: form.control, name: 'clientId' })
+  const selectedClient = clients.find((c) => c.id === watchedClientId)
+  const watchedTaxRate = useWatch({ control: form.control, name: 'taxRate' }) ?? 0
+  const watchedDiscountRate = useWatch({ control: form.control, name: 'discountRate' }) ?? 0
+  const watchedStatus = useWatch({ control: form.control, name: 'status' })
+  const watchedIssueDate = useWatch({ control: form.control, name: 'issueDate' })
+  const watchedDueDate = useWatch({ control: form.control, name: 'dueDate' })
 
   const productItems = useMemo(
     () =>
@@ -400,8 +405,8 @@ export function InvoiceEditor({
                       key={status}
                       type="button"
                       size="sm"
-                      variant={form.watch('status') === status ? 'solid' : 'outline'}
-                      colorPalette={form.watch('status') === status ? 'teal' : 'gray'}
+                      variant={watchedStatus === status ? 'solid' : 'outline'}
+                      colorPalette={watchedStatus === status ? 'teal' : 'gray'}
                       onClick={() => form.setValue('status', status)}
                     >
                       {status}
@@ -528,7 +533,7 @@ export function InvoiceEditor({
                 <Text fontSize="sm" fontWeight="medium" mb="3">
                   Status
                 </Text>
-                <StatusChip status={form.watch('status') as InvoiceStatus} />
+                <StatusChip status={watchedStatus as InvoiceStatus} />
               </Box>
 
               {selectedClient && (
@@ -553,11 +558,11 @@ export function InvoiceEditor({
                 <Flex direction="column" gap="3" fontSize="sm" color="fg.muted">
                   <Flex justify="space-between">
                     <span>Issue date</span>
-                    <span>{form.watch('issueDate') ? format(new Date(form.watch('issueDate')), 'MMM dd, yyyy') : '-'}</span>
+                    <span>{watchedIssueDate ? format(new Date(watchedIssueDate), 'MMM dd, yyyy') : '-'}</span>
                   </Flex>
                   <Flex justify="space-between">
                     <span>Due date</span>
-                    <span>{form.watch('dueDate') ? format(new Date(form.watch('dueDate')), 'MMM dd, yyyy') : '-'}</span>
+                    <span>{watchedDueDate ? format(new Date(watchedDueDate), 'MMM dd, yyyy') : '-'}</span>
                   </Flex>
                 </Flex>
               </Box>

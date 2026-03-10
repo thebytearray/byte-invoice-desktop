@@ -35,12 +35,18 @@ pub fn import_data(db: State<DbState>, data: AppData) -> Result<(), String> {
     let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
 
     // Delete in order respecting FK (invoice_items has FK to invoices)
-    tx.execute("DELETE FROM invoice_items", []).map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM invoices", []).map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM clients", []).map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM products", []).map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM company", []).map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM app_settings", []).map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM invoice_items", [])
+        .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM invoices", [])
+        .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM clients", [])
+        .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM products", [])
+        .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM company", [])
+        .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM app_settings", [])
+        .map_err(|e| e.to_string())?;
 
     // Insert company
     tx.execute(
@@ -160,10 +166,14 @@ pub fn clear_all_data(db: State<DbState>) -> Result<(), String> {
 
     conn.execute("DELETE FROM invoice_items", [])
         .map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM invoices", []).map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM clients", []).map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM products", []).map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM company", []).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM invoices", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM clients", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM products", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM company", [])
+        .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM app_settings", [])
         .map_err(|e| e.to_string())?;
 
