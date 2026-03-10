@@ -87,9 +87,7 @@ jobs:
 
       - name: Build Tauri (Android)
         if: matrix.is_android
-        run: npm run tauri android build
-        env:
-          CI: ""
+        run: npm run tauri android build -- --ci true
 
       - name: Upload desktop artifacts
         if: matrix.is_android == false
