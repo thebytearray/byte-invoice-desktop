@@ -1,13 +1,15 @@
-name: Build
+name: Build & Release
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. 1.0.0 or v1.0.0)"
+        required: true
+        type: string
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: release-${{ github.event.inputs.version }}
   cancel-in-progress: true
 
 jobs:
@@ -49,16 +51,35 @@ jobs:
       - name: Build Tauri
         run: npm run tauri build -- --target ${{ matrix.target }}
 
-      - name: Upload macOS artifacts
-        if: matrix.platform == 'macos-latest'
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: src-tauri/target/${{ matrix.target }}/release/bundle/
 
-      - name: Upload Windows artifacts
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-artifact@v4
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: src-tauri/target/${{ matrix.target }}/release/bundle/
+          pattern: byte-invoice-*
+          merge-multiple: false
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Byte Invoice ${{ github.event.inputs.version }}
+          draft: false
+          generate_release_notes: true
+          files: |
+            byte-invoice-macos-arm64/**/*
+            byte-invoice-macos-x64/**/*
+            byte-invoice-windows-x64/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
