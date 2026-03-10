@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions and invoice commands",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:path:default",
+    "dialog:default",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file"
+  ]
+}

@@ -1,0 +1,8 @@
+export { DashboardPage } from './dashboard'
+export { InvoicesPage } from './invoices'
+export { InvoiceNewPage } from './invoice-new'
+export { InvoiceDetailPage } from './invoice-detail'
+export { InvoiceEditPage } from './invoice-edit'
+export { ClientsPage } from './clients'
+export { ProductsPage } from './products'
+export { SettingsPage } from './settings'
