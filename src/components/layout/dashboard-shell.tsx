@@ -139,7 +139,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Drawer.Backdrop />
         <Drawer.Positioner>
           <Drawer.Content maxW="xs">
-            <Drawer.Header>
+            <Drawer.Header pt="calc(1rem + env(safe-area-inset-top, 0px))">
               <Flex align="center" justify="space-between" w="full">
                 <AppLogo />
                 <IconButton aria-label="Close" variant="ghost" minW="10" minH="10" onClick={() => setMobileOpen(false)}>

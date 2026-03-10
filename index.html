@@ -7,6 +7,16 @@
     <title>Byte Invoice</title>
   </head>
   <body>
+    <script>
+      // Disable web-view context menu (right-click, long-press) for native app feel
+      document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      // Prevent selection popup on long-press, except in inputs/editable areas
+      document.addEventListener('selectstart', function (e) {
+        var target = e.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+        e.preventDefault();
+      }, { capture: true });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

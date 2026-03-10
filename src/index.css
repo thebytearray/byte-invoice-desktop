@@ -14,6 +14,18 @@ body {
   padding: 0;
   height: 100vh;
   overflow: hidden;
+  /* Native app feel: prevent web-view callouts and selection popups */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in inputs and editable areas */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #root {
