@@ -21,12 +21,19 @@ jobs:
           - platform: macos-latest
             target: aarch64-apple-darwin
             artifact_name: byte-invoice-macos-arm64
+            is_android: false
           - platform: macos-latest
             target: x86_64-apple-darwin
             artifact_name: byte-invoice-macos-x64
+            is_android: false
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: byte-invoice-windows-x64
+            is_android: false
+          - platform: ubuntu-latest
+            target: android
+            artifact_name: byte-invoice-android
+            is_android: true
 
     runs-on: ${{ matrix.platform }}
 
@@ -38,9 +45,26 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - uses: dtolnay/rust-toolchain@1.77
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.is_android && 'aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android' || matrix.target }}
+
+      - name: Ensure Rust target is installed
+        if: matrix.is_android == false
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Setup Java
+        if: matrix.is_android
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        if: matrix.is_android
+        uses: android-actions/setup-android@v3
+        with:
+          packages: tools platform-tools ndk;26.1.10909125
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -48,14 +72,27 @@ jobs:
 
       - run: npm ci
 
-      - name: Build Tauri
+      - name: Build Tauri (desktop)
+        if: matrix.is_android == false
         run: npm run tauri build -- --target ${{ matrix.target }}
 
-      - name: Upload build artifacts
+      - name: Build Tauri (Android)
+        if: matrix.is_android
+        run: npm run tauri android build
+
+      - name: Upload desktop artifacts
+        if: matrix.is_android == false
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: src-tauri/target/${{ matrix.target }}/release/bundle/
+
+      - name: Upload Android artifacts
+        if: matrix.is_android
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: src-tauri/gen/android/app/build/outputs/apk/
 
   release:
     needs: build
@@ -81,5 +118,6 @@ jobs:
             byte-invoice-macos-arm64/**/*
             byte-invoice-macos-x64/**/*
             byte-invoice-windows-x64/**/*
+            byte-invoice-android/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

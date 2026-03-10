@@ -8,6 +8,9 @@
     "dev": "vite",
     "tauri": "tauri",
     "build": "tsc -b && vite build",
+    "android:init": "tauri android init",
+    "android:build": "tauri android build",
+    "android:dev": "tauri android dev",
     "lint": "eslint .",
     "preview": "vite preview"
   },
