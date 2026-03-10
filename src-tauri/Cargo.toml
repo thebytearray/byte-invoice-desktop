@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
 license = "GPL-3.0"
-repository = ""
+repository = "https://github.com/thebytearray/byte-invoice.git"
 edition = "2021"
 rust-version = "1.85"
 

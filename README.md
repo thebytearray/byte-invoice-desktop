@@ -1,12 +1,14 @@
-# Byte Invoice Desktop
+# Byte Invoice
 
-A Tauri 2 desktop application for invoicing, built with React and Rust.
+A cross-platform invoicing app built with Tauri 2, React, and Rust. Runs on **Android**, **macOS**, **Windows**, and **Linux**.
+
+**Repository:** [https://github.com/thebytearray/byte-invoice](https://github.com/thebytearray/byte-invoice)
 
 Licensed under [GPL-3.0](LICENSE).
 
 ## Tech Stack
 
-- **Desktop:** Tauri 2
+- **Framework:** Tauri 2 (cross-platform)
 - **Frontend:** React 19, TypeScript, Vite, Chakra UI
 - **Backend:** Rust, SQLite (rusqlite)
 
