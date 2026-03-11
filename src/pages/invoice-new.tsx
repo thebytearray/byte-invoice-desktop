@@ -1,25 +1,26 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Flex } from '@chakra-ui/react'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import type { Invoice } from '@/types'
 import { toaster } from '@/components/ui/toaster'
 import { PageHeader } from '@/components/saas/page-header'
-import { InvoiceEditor, type InvoiceEditorSubmitPayload } from '@/components/invoices/invoice-editor'
+import { InvoiceEditor, type InvoiceEditorSubmitPayload } from '@/components/invoices/InvoiceEditor'
 
 export function InvoiceNewPage() {
   const navigate = useNavigate()
-  const { clients, products, addInvoice, invoices } = useStore()
+  const { clients, products, addInvoice, invoices } = useStore(
+    useShallow((s) => ({
+      clients: s.clients,
+      products: s.products,
+      addInvoice: s.addInvoice,
+      invoices: s.invoices,
+    }))
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const generateInvoiceNumber = () => {
-    const year = new Date().getFullYear()
-    const month = String(new Date().getMonth() + 1).padStart(2, '0')
-    const count = invoices.length + 1
-    return `INV-${year}${month}-${String(count).padStart(4, '0')}`
-  }
-
-  const onSubmit = async ({
+  const onSubmit = useCallback(async ({
     values,
     subtotal,
     discountAmount,
@@ -33,9 +34,14 @@ export function InvoiceNewPage() {
         throw new Error('Client not found')
       }
 
+      const year = new Date().getFullYear()
+      const month = String(new Date().getMonth() + 1).padStart(2, '0')
+      const count = invoices.length + 1
+      const invoiceNumber = `INV-${year}${month}-${String(count).padStart(4, '0')}`
+
       const newInvoice: Invoice = {
         id: crypto.randomUUID(),
-        invoiceNumber: generateInvoiceNumber(),
+        invoiceNumber,
         clientId: values.clientId,
         clientName: selectedClient.name,
         issueDate: values.issueDate,
@@ -59,7 +65,7 @@ export function InvoiceNewPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [clients, addInvoice, invoices, navigate])
 
   return (
     <Flex direction="column" gap={{ base: '4', md: '5' }}>

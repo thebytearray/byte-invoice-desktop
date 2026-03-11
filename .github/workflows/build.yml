@@ -81,15 +81,15 @@ jobs:
 
       - run: npm ci
 
-      - name: Build Tauri (macOS - app bundle)
+      - name: Build Tauri (macOS - app bundle + DMG)
         if: matrix.is_android == false && matrix.platform == 'macos-latest'
-        run: npm run tauri build -- --target ${{ matrix.target }} --bundles app
+        run: npm run tauri build -- --target ${{ matrix.target }} --bundles app,dmg
 
       - name: Build Tauri (Windows - NSIS exe)
         if: matrix.is_android == false && matrix.platform == 'windows-latest'
         run: npm run tauri build -- --target ${{ matrix.target }} --bundles nsis
 
-      - name: Create macOS zip
+      - name: Create macOS zip and prepare DMG
         if: matrix.is_android == false && matrix.platform == 'macos-latest'
         run: |
           VERSION="${{ github.event.inputs.version }}"
@@ -97,13 +97,19 @@ jobs:
           ARCH=${{ matrix.target == 'aarch64-apple-darwin' && 'arm64' || 'x64' }}
           cd src-tauri/target/${{ matrix.target }}/release/bundle/macos
           zip -r "../../../../../../Byte-Invoice-${VERSION}-macos-${ARCH}.zip" "Byte Invoice.app"
+          cd ..
+          if [ -d dmg ] && ls dmg/*.dmg 1>/dev/null 2>&1; then
+            cp dmg/*.dmg "../../../../../Byte-Invoice-${VERSION}-macos-${ARCH}.dmg"
+          fi
 
-      - name: Upload macOS zip
+      - name: Upload macOS artifacts
         if: matrix.is_android == false && matrix.platform == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: Byte-Invoice-*-macos-${{ matrix.target == 'aarch64-apple-darwin' && 'arm64' || 'x64' }}.zip
+          path: |
+            Byte-Invoice-*-macos-${{ matrix.target == 'aarch64-apple-darwin' && 'arm64' || 'x64' }}.zip
+            Byte-Invoice-*-macos-${{ matrix.target == 'aarch64-apple-darwin' && 'arm64' || 'x64' }}.dmg
 
       - name: Upload Windows exe
         if: matrix.is_android == false && matrix.platform == 'windows-latest'
@@ -116,12 +122,31 @@ jobs:
         if: matrix.is_android
         run: npm run tauri android build -- --ci
 
+      - name: Prepare Android artifacts (unique names to avoid release conflicts)
+        if: matrix.is_android
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION="${VERSION#v}"
+          APK_DIR="src-tauri/gen/android/app/build/outputs/apk"
+          mkdir -p android-artifacts
+          for apk in "$APK_DIR"/universal/release/*.apk; do
+            [ -f "$apk" ] && cp "$apk" "android-artifacts/Byte-Invoice-${VERSION}-android-universal.apk" && break
+          done
+          for subdir in "$APK_DIR"/*/; do
+            [ -d "$subdir" ] || continue
+            variant=$(basename "$subdir")
+            [ "$variant" = "universal" ] && continue
+            for apk in "$subdir"release/*.apk; do
+              [ -f "$apk" ] && cp "$apk" "android-artifacts/Byte-Invoice-${VERSION}-android-${variant}.apk" && break
+            done
+          done
+
       - name: Upload Android artifacts
         if: matrix.is_android
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: src-tauri/gen/android/app/build/outputs/apk/
+          path: android-artifacts/
 
   release:
     needs: build

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Box, Flex, Image } from '@chakra-ui/react'
 
 interface AppLogoProps {
@@ -8,15 +8,22 @@ interface AppLogoProps {
 }
 
 export function AppLogo({ href = '/', compact = false }: AppLogoProps) {
+  const navigate = useNavigate()
   return (
-    <Link to={href}>
+    <Box
+      as="button"
+      cursor="pointer"
+      role="button"
+      onClick={() => navigate(href)}
+    >
       <Flex
         align="center"
+        justify={compact ? 'center' : 'flex-start'}
         gap="3"
         rounded="full"
         borderWidth="1px"
         borderColor="border"
-        px="3"
+        px={compact ? '2' : '3'}
         py="2"
         bg="bg.subtle"
         _hover={{ borderColor: 'border.emphasized', bg: 'bg.muted' }}
@@ -31,7 +38,7 @@ export function AppLogo({ href = '/', compact = false }: AppLogoProps) {
           objectFit="cover"
         />
         {!compact && (
-          <Flex align="center" gap="1" lineHeight="none">
+          <Flex align="center" gap="1" lineHeight="none" whiteSpace="nowrap">
             <Box as="span" fontSize="xs" textTransform="uppercase" letterSpacing="0.3em" color="fg.muted">
               Byte
             </Box>
@@ -41,6 +48,6 @@ export function AppLogo({ href = '/', compact = false }: AppLogoProps) {
           </Flex>
         )}
       </Flex>
-    </Link>
+    </Box>
   )
 }

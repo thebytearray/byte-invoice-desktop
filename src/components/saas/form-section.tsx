@@ -8,7 +8,7 @@ interface FormSectionProps {
 
 export function FormSection({ title, description, children }: FormSectionProps) {
   return (
-    <Box as="section" rounded="2xl" borderWidth="1px" borderColor="border" bg="bg.subtle" p="6">
+    <Box as="section" rounded="2xl" borderWidth="1px" borderColor="border" bg="bg.subtle" p={{ base: '4', md: '6' }}>
       <Flex direction="column" gap="1" mb="6">
         <Text fontSize="lg" fontWeight="semibold">
           {title}

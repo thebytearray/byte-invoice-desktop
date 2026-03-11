@@ -19,14 +19,15 @@ export function EmptyState({ icon, title, description, actionLabel, onAction, ac
       borderStyle="dashed"
       borderColor="border"
       bg="bg.subtle"
-      px="6"
-      py="8"
+      px={{ base: '4', md: '6' }}
+      py={{ base: '6', md: '8' }}
       textAlign="center"
+      minW="0"
     >
       <Box mb="4" rounded="3xl" borderWidth="1px" borderColor="border" p="4" bg="bg.muted">
         {icon}
       </Box>
-      <Text fontSize="xl" fontWeight="semibold">
+      <Text fontSize="xl" fontWeight="semibold" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" maxW="full">
         {title}
       </Text>
       <Text mt="2" maxW="md" fontSize="sm" lineHeight="7" color="fg.muted" minW="0">
@@ -35,11 +36,11 @@ export function EmptyState({ icon, title, description, actionLabel, onAction, ac
       {actionLabel && (
         <Box mt="4">
           {actionHref ? (
-            <Button asChild colorPalette="teal">
-              <Link to={actionHref}>{actionLabel}</Link>
-            </Button>
+          <Button asChild colorPalette="teal" whiteSpace="nowrap">
+            <Link to={actionHref}>{actionLabel}</Link>
+          </Button>
           ) : onAction ? (
-            <Button colorPalette="teal" onClick={onAction}>
+            <Button colorPalette="teal" onClick={onAction} whiteSpace="nowrap">
               {actionLabel}
             </Button>
           ) : null}

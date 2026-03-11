@@ -33,8 +33,8 @@ function AppLayout() {
   )
 }
 
-const MIN_WINDOW_WIDTH = 1024
-const MIN_WINDOW_HEIGHT = 700
+const MIN_WINDOW_WIDTH = 320
+const MIN_WINDOW_HEIGHT = 400
 
 export default function App() {
   useEffect(() => {

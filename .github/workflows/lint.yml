@@ -30,6 +30,8 @@ jobs:
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
 
       - name: rustfmt
         run: cargo fmt --all -- --check

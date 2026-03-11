@@ -61,6 +61,8 @@ export const ColorModeButton = React.forwardRef<
         variant="ghost"
         aria-label="Toggle color mode"
         size="sm"
+        minW={{ base: '11', md: '10' }}
+        minH={{ base: '11', md: '10' }}
         ref={ref}
         {...props}
         css={{

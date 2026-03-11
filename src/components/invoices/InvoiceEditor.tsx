@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -7,16 +7,20 @@ import { CalendarDate } from '@internationalized/date'
 import {
   Box,
   Button,
+  Combobox,
+  createListCollection,
   DatePicker,
   Flex,
   Grid,
   Icon,
   Input,
-  NativeSelect,
+  Select,
   Table,
   Text,
   Textarea,
   Theme,
+  useFilter,
+  useListCollection,
 } from '@chakra-ui/react'
 import { useColorMode } from '@/components/ui/color-mode'
 import { FiCalendar, FiPlus, FiSave, FiTrash2 } from 'react-icons/fi'
@@ -24,7 +28,8 @@ import { ScrollableTable } from '@/components/layout/scrollable-table'
 import { FormSection } from '@/components/saas/form-section'
 import { SectionCard } from '@/components/saas/section-card'
 import { StatusChip } from '@/components/saas/status-chip'
-import type { Client, Invoice, InvoiceItem, InvoiceStatus, Product } from '@/types'
+import type { Client, Invoice, InvoiceStatus, Product } from '@/types'
+import { clientDisplay, fromCalendarDate, toCalendarDate, toInvoiceItems, toDateString } from '@/utils/invoiceEditor'
 
 const invoiceItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -65,41 +70,11 @@ interface InvoiceEditorProps {
   onSubmit: (payload: InvoiceEditorSubmitPayload) => Promise<void> | void
 }
 
-function toInvoiceItems(items: InvoiceItem[] | undefined) {
-  if (!items?.length) {
-    return [{ productId: '', productName: '', description: '', quantity: 1, unitPrice: 0, total: 0 }]
-  }
-  return items.map((item) => ({
-    productId: item.productId,
-    productName: item.productName,
-    description: item.description,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    total: item.total,
-  }))
-}
+const selectPositioning = { strategy: 'fixed' as const, hideWhenDetached: true }
 
-function toDateString(d: Date) {
-  return format(d, 'yyyy-MM-dd')
-}
+const comboboxPositioning = { strategy: 'fixed' as const, hideWhenDetached: true }
 
-function toCalendarDate(dateStr: string): CalendarDate {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return new CalendarDate(y, m, d)
-}
-
-function fromCalendarDate(cd: CalendarDate): string {
-  const y = cd.year
-  const m = String(cd.month).padStart(2, '0')
-  const d = String(cd.day).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function clientDisplay(client: Client) {
-  return `${client.name} - ${client.email}`
-}
-
-function ClientSearchSelect({
+function ClientSelect({
   clients,
   value,
   onChange,
@@ -112,45 +87,57 @@ function ClientSearchSelect({
   invalid?: boolean
   placeholder?: string
 }) {
-  const listId = useId()
-  const selectedClient = clients.find((c) => c.id === value)
-  const [searchQuery, setSearchQuery] = useState('')
+  const clientItems = useMemo(
+    () => clients.map((c) => ({ label: clientDisplay(c), value: c.id })),
+    [clients]
+  )
+  const { contains } = useFilter({ sensitivity: 'base' })
+  const { collection, reset, set } = useListCollection({
+    initialItems: clientItems,
+    filter: contains,
+    limit: 50,
+  })
 
-  const displayValue = selectedClient ? clientDisplay(selectedClient) : searchQuery
+  useEffect(() => {
+    set(clientItems)
+  }, [clientItems, set])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value
-    setSearchQuery(v)
-    const match = clients.find((c) => clientDisplay(c) === v)
-    onChange(match ? match.id : '')
-  }
-
-  const handleFocus = () => {
-    if (selectedClient) setSearchQuery(clientDisplay(selectedClient))
-  }
-
-  const handleBlur = () => {
-    if (!value) setSearchQuery('')
-  }
+  useEffect(() => {
+    reset()
+  }, [value, reset])
 
   return (
-    <Box position="relative">
-      <Input
-        list={listId}
-        value={displayValue}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        borderColor={invalid ? 'red.500' : undefined}
-        autoComplete="off"
-      />
-      <datalist id={listId}>
-        {clients.map((c) => (
-          <option key={c.id} value={clientDisplay(c)} />
-        ))}
-      </datalist>
-    </Box>
+    <Combobox.Root
+      collection={collection}
+      value={value ? [value] : []}
+      onValueChange={(details) => onChange(details.value[0] ?? '')}
+      invalid={invalid}
+      placeholder={placeholder}
+      name="clientId"
+      positioning={comboboxPositioning}
+      openOnClick
+      closeOnSelect
+    >
+      <Combobox.Control>
+        <Combobox.Input />
+        <Combobox.IndicatorGroup>
+          <Combobox.ClearTrigger />
+          <Combobox.Trigger />
+        </Combobox.IndicatorGroup>
+      </Combobox.Control>
+      <Combobox.Positioner>
+        <Combobox.Content>
+          <Combobox.Empty>No clients found</Combobox.Empty>
+          <Combobox.List>
+            {collection.items.map((item) => (
+              <Combobox.Item key={item.value} item={item}>
+                <Combobox.ItemText>{item.label}</Combobox.ItemText>
+              </Combobox.Item>
+            ))}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox.Positioner>
+    </Combobox.Root>
   )
 }
 
@@ -190,7 +177,6 @@ export function InvoiceEditor({
     })
   }, [form, initialInvoice])
 
-  const { colorMode } = useColorMode()
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'items' })
   const rawItems = useWatch({ control: form.control, name: 'items' })
   const watchedItems = useMemo(() => rawItems ?? [], [rawItems])
@@ -202,14 +188,6 @@ export function InvoiceEditor({
   const watchedIssueDate = useWatch({ control: form.control, name: 'issueDate' })
   const watchedDueDate = useWatch({ control: form.control, name: 'dueDate' })
 
-  const productItems = useMemo(
-    () =>
-      products.map((p) => ({
-        label: `${p.name} - ${p.price != null ? `$${p.price.toFixed(2)}` : 'Variable'}`,
-        value: p.id,
-      })),
-    [products]
-  )
   useEffect(() => {
     watchedItems.forEach((item, index) => {
       const computedTotal = (item?.quantity || 0) * (item?.unitPrice || 0)
@@ -219,11 +197,19 @@ export function InvoiceEditor({
     })
   }, [form, watchedItems])
 
-  const subtotal = watchedItems.reduce((sum, item) => sum + (item?.total || 0), 0)
-  const discountAmount = subtotal * (watchedDiscountRate / 100)
-  const taxableAmount = subtotal - discountAmount
-  const taxAmount = taxableAmount * (watchedTaxRate / 100)
-  const total = taxableAmount + taxAmount
+  const productItems = useMemo(
+    () =>
+      products.map((p) => ({
+        label: `${p.name} - ${p.price != null ? `$${p.price.toFixed(2)}` : 'Variable'}`,
+        value: p.id,
+      })),
+    [products]
+  )
+
+  const productCollection = useMemo(
+    () => createListCollection({ items: productItems }),
+    [productItems]
+  )
 
   const handleProductSelect = (productId: string, index: number) => {
     const product = products.find((p) => p.id === productId)
@@ -240,6 +226,12 @@ export function InvoiceEditor({
     append({ productId: '', productName: '', description: '', quantity: 1, unitPrice: 0, total: 0 })
   }
 
+  const subtotal = watchedItems.reduce((sum, item) => sum + (item?.total || 0), 0)
+  const discountAmount = subtotal * (watchedDiscountRate / 100)
+  const taxableAmount = subtotal - discountAmount
+  const taxAmount = taxableAmount * (watchedTaxRate / 100)
+  const total = taxableAmount + taxAmount
+
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit({
       values: { ...values, issueDate: values.issueDate, dueDate: values.dueDate },
@@ -250,9 +242,11 @@ export function InvoiceEditor({
     })
   })
 
+  const { colorMode } = useColorMode()
+
   return (
     <form onSubmit={handleSubmit}>
-      <Grid templateColumns={{ md: '1fr', xl: '1.3fr 0.7fr' }} gap={{ base: '6', md: '8' }}>
+      <Grid templateColumns={{ md: '1fr', xl: '1.3fr 0.7fr' }} gap={{ base: '4', md: '6', xl: '8' }}>
         <Flex direction="column" gap="6" minW="0">
           <FormSection title="Invoice details" description="Choose the client, set dates, and define the working status.">
             <Grid templateColumns={{ md: '1fr 1fr' }} gap="4">
@@ -264,7 +258,7 @@ export function InvoiceEditor({
                   name="clientId"
                   control={form.control}
                   render={({ field }) => (
-                    <ClientSearchSelect
+                    <ClientSelect
                       clients={clients}
                       value={field.value}
                       onChange={field.onChange}
@@ -306,7 +300,7 @@ export function InvoiceEditor({
                         <DatePicker.Input placeholder="Select date" flex="1" minW="0" />
                         <DatePicker.IndicatorGroup>
                           <DatePicker.Trigger asChild>
-                            <Button variant="ghost" px="2" aria-label="Open calendar">
+                            <Button variant="ghost" px="2" minH={{ base: '11', md: '10' }} aria-label="Open calendar">
                               <Icon as={FiCalendar} />
                             </Button>
                           </DatePicker.Trigger>
@@ -364,7 +358,7 @@ export function InvoiceEditor({
                         <DatePicker.Input placeholder="Select date" flex="1" minW="0" />
                         <DatePicker.IndicatorGroup>
                           <DatePicker.Trigger asChild>
-                            <Button variant="ghost" px="2" aria-label="Open calendar">
+                            <Button variant="ghost" px="2" minH={{ base: '11', md: '10' }} aria-label="Open calendar">
                               <Icon as={FiCalendar} />
                             </Button>
                           </DatePicker.Trigger>
@@ -408,6 +402,7 @@ export function InvoiceEditor({
                       variant={watchedStatus === status ? 'solid' : 'outline'}
                       colorPalette={watchedStatus === status ? 'teal' : 'gray'}
                       onClick={() => form.setValue('status', status)}
+                      whiteSpace="nowrap"
                     >
                       {status}
                     </Button>
@@ -419,7 +414,7 @@ export function InvoiceEditor({
 
           <FormSection title="Items" description="Add products or services, then fine-tune pricing and quantities.">
             <Flex justify="flex-end" mb="4">
-              <Button type="button" colorPalette="teal" onClick={addItem}>
+              <Button type="button" colorPalette="teal" onClick={addItem} whiteSpace="nowrap" minH={{ base: '11', md: '10' }}>
                 <Icon as={FiPlus} mr="2" />
                 Add item
               </Button>
@@ -437,6 +432,8 @@ export function InvoiceEditor({
                         colorPalette="red"
                         onClick={() => remove(index)}
                         aria-label="Remove item"
+                        minW={{ base: '11', md: '10' }}
+                        minH={{ base: '11', md: '10' }}
                       >
                         <FiTrash2 />
                       </Button>
@@ -447,23 +444,35 @@ export function InvoiceEditor({
                       <Text fontSize="sm" fontWeight="medium" mb="2">
                         Product or service
                       </Text>
-                      <NativeSelect.Root>
-                        <NativeSelect.Field
-                          value={watchedItems[index]?.productId ?? ''}
-                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                            const id = e.target.value
-                            if (id) handleProductSelect(id, index)
-                          }}
-                          placeholder="Select a product..."
-                        >
-                          {productItems.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </NativeSelect.Field>
-                        <NativeSelect.Indicator />
-                      </NativeSelect.Root>
+                      <Select.Root
+                        collection={productCollection}
+                        value={watchedItems[index]?.productId ? [watchedItems[index].productId!] : []}
+                        onValueChange={(details) => {
+                          const id = details.value[0]
+                          if (id) handleProductSelect(id, index)
+                        }}
+                        positioning={selectPositioning}
+                        name={`items.${index}.productId`}
+                      >
+                        <Select.HiddenSelect />
+                        <Select.Control>
+                          <Select.Trigger>
+                            <Select.ValueText placeholder="Select a product..." />
+                          </Select.Trigger>
+                          <Select.IndicatorGroup>
+                            <Select.Indicator />
+                          </Select.IndicatorGroup>
+                        </Select.Control>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {productCollection.items.map((item) => (
+                              <Select.Item key={item.value} item={item}>
+                                <Select.ItemText>{item.label}</Select.ItemText>
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
                     </Box>
                     <Box gridColumn={{ md: '1 / -1' }}>
                       <Text fontSize="sm" fontWeight="medium" mb="2">
@@ -570,28 +579,28 @@ export function InvoiceEditor({
               <ScrollableTable>
                 <Table.Root size="sm">
                   <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeader>Item</Table.ColumnHeader>
-                    <Table.ColumnHeader>Qty</Table.ColumnHeader>
-                    <Table.ColumnHeader>Total</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {watchedItems.map((item, index) => (
-                    <Table.Row key={`${item?.productId}-${index}`}>
-                      <Table.Cell>
-                        <Box>
-                          <Text fontWeight="medium">{item?.productName || 'Untitled item'}</Text>
-                          <Text fontSize="xs" color="fg.muted">
-                            {item?.description}
-                          </Text>
-                        </Box>
-                      </Table.Cell>
-                      <Table.Cell>{item?.quantity || 0}</Table.Cell>
-                      <Table.Cell>${(item?.total || 0).toFixed(2)}</Table.Cell>
+                    <Table.Row>
+                      <Table.ColumnHeader>Item</Table.ColumnHeader>
+                      <Table.ColumnHeader>Qty</Table.ColumnHeader>
+                      <Table.ColumnHeader>Total</Table.ColumnHeader>
                     </Table.Row>
-                  ))}
-                </Table.Body>
+                  </Table.Header>
+                  <Table.Body>
+                    {watchedItems.map((item, index) => (
+                      <Table.Row key={`${item?.productId}-${index}`}>
+                        <Table.Cell>
+                          <Box>
+                            <Text fontWeight="medium">{item?.productName || 'Untitled item'}</Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              {item?.description}
+                            </Text>
+                          </Box>
+                        </Table.Cell>
+                        <Table.Cell>{item?.quantity || 0}</Table.Cell>
+                        <Table.Cell>${(item?.total || 0).toFixed(2)}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
                 </Table.Root>
               </ScrollableTable>
 
@@ -620,7 +629,7 @@ export function InvoiceEditor({
                 </Flex>
               </Box>
 
-              <Button type="submit" colorPalette="teal" loading={isSubmitting}>
+              <Button type="submit" colorPalette="teal" loading={isSubmitting} whiteSpace="nowrap" w={{ base: 'full', md: 'auto' }} minH={{ base: '11', md: '10' }}>
                 <Icon as={FiSave} mr="2" />
                 {mode === 'create' ? 'Create invoice' : 'Save changes'}
               </Button>

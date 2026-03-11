@@ -130,22 +130,15 @@ export const tauriApi = {
     return invoke('clear_all_data')
   },
 
-  async sendEmail(payload: {
-    smtp: {
-      host: string
-      port: number
-      secure: boolean
-      username: string
-      password: string
-      fromName: string
-      fromEmail: string
-    }
-    to: string
-    subject: string
-    html: string
-    pdfBase64?: string
-    pdfFilename?: string
-  }): Promise<void> {
+  async sendEmail(payload: SendEmailPayload): Promise<void> {
     return invoke('send_email', { payload })
   },
+}
+
+export interface SendEmailPayload {
+  to: string
+  subject: string
+  htmlBody: string
+  pdfBase64?: string
+  pdfFilename?: string
 }

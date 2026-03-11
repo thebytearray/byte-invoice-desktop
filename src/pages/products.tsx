@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react'
 import { FiEdit, FiPackage, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { toaster } from '@/components/ui/toaster'
 import type { Product } from '@/types'
 import { ResponsiveList } from '@/components/layout/responsive-list'
@@ -36,7 +37,15 @@ const productSchema = z.object({
 type ProductFormData = z.infer<typeof productSchema>
 
 export function ProductsPage() {
-  const { products, addProduct, updateProduct, deleteProduct, isLoading } = useStore()
+  const { products, addProduct, updateProduct, deleteProduct, isLoading } = useStore(
+    useShallow((s) => ({
+      products: s.products,
+      addProduct: s.addProduct,
+      updateProduct: s.updateProduct,
+      deleteProduct: s.deleteProduct,
+      isLoading: s.isLoading,
+    }))
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -141,7 +150,7 @@ export function ProductsPage() {
         title="Products and services"
         description="Build a reusable catalog so invoice creation feels faster, more consistent, and less repetitive."
         actions={
-          <Button colorPalette="teal" onClick={() => setDialogOpen(true)}>
+          <Button colorPalette="teal" onClick={() => setDialogOpen(true)} whiteSpace="nowrap">
             <Icon as={FiPlus} mr="2" />
             Add product
           </Button>
@@ -165,7 +174,7 @@ export function ProductsPage() {
             />
           </Box>
           {searchTerm && (
-            <Button variant="outline" size="sm" onClick={clearSearch}>
+            <Button variant="outline" size="sm" onClick={clearSearch} whiteSpace="nowrap">
               <Icon as={FiX} mr="2" />
               Clear
             </Button>
@@ -216,8 +225,8 @@ export function ProductsPage() {
                             aria-label="Edit"
                             size="sm"
                             variant="ghost"
-                            minW="10"
-                            minH="10"
+                            minW={{ base: '11', md: '10' }}
+                            minH={{ base: '11', md: '10' }}
                             onClick={() => handleEdit(product)}
                           >
                             <Icon as={FiEdit} />
@@ -227,9 +236,9 @@ export function ProductsPage() {
                             size="sm"
                             variant="ghost"
                             colorPalette="red"
-                            minW="10"
-                            minH="10"
-                            onClick={() => handleDeleteClick(product)}
+minW={{ base: '11', md: '10' }}
+                              minH={{ base: '11', md: '10' }}
+                              onClick={() => handleDeleteClick(product)}
                           >
                             <Icon as={FiTrash2} />
                           </IconButton>
@@ -256,20 +265,20 @@ export function ProductsPage() {
                 <Table.Body>
                   {filteredProducts.map((product) => (
                     <Table.Row key={product.id}>
-                      <Table.Cell fontWeight="medium">{product.name}</Table.Cell>
-                      <Table.Cell>{product.sku}</Table.Cell>
-                      <Table.Cell>{product.category}</Table.Cell>
-                      <Table.Cell>
-                        <Text maxW="sm" fontSize="sm" color="fg.muted">
+                      <Table.Cell fontWeight="medium" minW="0">{product.name}</Table.Cell>
+                      <Table.Cell whiteSpace="nowrap">{product.sku}</Table.Cell>
+                      <Table.Cell whiteSpace="nowrap">{product.category}</Table.Cell>
+                      <Table.Cell minW="0">
+                        <Text maxW={{ base: 'full', md: 'sm' }} fontSize="sm" color="fg.muted" minW="0" lineClamp={2}>
                           {product.description}
                         </Text>
                       </Table.Cell>
-                      <Table.Cell>
+                      <Table.Cell whiteSpace="nowrap">
                         {product.price !== undefined ? `$${product.price.toFixed(2)}` : 'Variable pricing'}
                       </Table.Cell>
                       <Table.Cell>
                         <Flex gap="2">
-                          <IconButton aria-label="Edit" size="sm" variant="ghost" minW="10" minH="10" onClick={() => handleEdit(product)}>
+                          <IconButton aria-label="Edit" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }} onClick={() => handleEdit(product)}>
                             <Icon as={FiEdit} />
                           </IconButton>
                           <IconButton
@@ -277,9 +286,9 @@ export function ProductsPage() {
                             size="sm"
                             variant="ghost"
                             colorPalette="red"
-                            minW="10"
-                            minH="10"
-                            onClick={() => handleDeleteClick(product)}
+minW={{ base: '11', md: '10' }}
+                              minH={{ base: '11', md: '10' }}
+                              onClick={() => handleDeleteClick(product)}
                           >
                             <Icon as={FiTrash2} />
                           </IconButton>
@@ -341,10 +350,10 @@ export function ProductsPage() {
                 </Flex>
               </Dialog.Body>
               <Dialog.Footer>
-                <Button variant="outline" onClick={handleDialogClose} disabled={isSubmitting}>
+                <Button variant="outline" onClick={handleDialogClose} disabled={isSubmitting} whiteSpace="nowrap">
                   Cancel
                 </Button>
-                <Button type="submit" colorPalette="teal" loading={isSubmitting}>
+                <Button type="submit" colorPalette="teal" loading={isSubmitting} whiteSpace="nowrap">
                   {editingProduct ? 'Update product' : 'Add product'}
                 </Button>
               </Dialog.Footer>
@@ -365,10 +374,10 @@ export function ProductsPage() {
               <Dialog.CloseTrigger />
             </Dialog.Header>
             <Dialog.Footer>
-              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting} whiteSpace="nowrap">
                 Cancel
               </Button>
-              <Button colorPalette="red" onClick={handleDeleteConfirm} loading={isDeleting}>
+              <Button colorPalette="red" onClick={handleDeleteConfirm} loading={isDeleting} whiteSpace="nowrap">
                 Delete
               </Button>
             </Dialog.Footer>

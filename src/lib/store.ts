@@ -73,8 +73,6 @@ interface AppState {
   deleteInvoice: (id: string) => Promise<void>
   settings: AppSettings
   setSettings: (settings: AppSettings) => Promise<void>
-  currentInvoice: Partial<Invoice> | null
-  setCurrentInvoice: (invoice: Partial<Invoice> | null) => void
   exportData: () => Promise<AppData | null>
   importData: (data: AppData) => Promise<void>
   clearAllData: () => Promise<void>
@@ -183,8 +181,6 @@ export const useStore = create<AppState>((set, get) => ({
       showError(e instanceof Error ? e.message : 'Failed to save settings')
     }
   },
-  currentInvoice: null,
-  setCurrentInvoice: (invoice) => set({ currentInvoice: invoice }),
   exportData: async () => {
     try {
       return await tauriApi.exportData()
@@ -205,7 +201,6 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       await tauriApi.clearAllData()
       await get().initializeData()
-      set({ currentInvoice: null })
     } catch (e) {
       showError(e instanceof Error ? e.message : 'Failed to clear data')
     }

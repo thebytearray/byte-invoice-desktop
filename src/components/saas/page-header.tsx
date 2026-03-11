@@ -17,12 +17,12 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
     >
       <Flex direction="column" gap="2" flex="1" minW={{ base: 0, lg: 'min(100%, 36rem)' }}>
         {eyebrow && (
-          <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="0.28em" color="fg.muted">
+          <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="0.28em" color="fg.muted" whiteSpace="nowrap">
             {eyebrow}
           </Text>
         )}
         <Flex direction="column" gap="1" minW="0">
-          <Heading size={{ base: 'xl', sm: '2xl' }} fontWeight="semibold" letterSpacing="tight">
+          <Heading size={{ base: 'xl', sm: '2xl' }} fontWeight="semibold" letterSpacing="tight" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
             {title}
           </Heading>
           {description && (
@@ -33,7 +33,7 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
         </Flex>
       </Flex>
       {actions && (
-        <Flex flexWrap="wrap" gap="3">
+        <Flex flexWrap="wrap" gap="3" css={{ '& button': { whiteSpace: 'nowrap' } }}>
           {actions}
         </Flex>
       )}

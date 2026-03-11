@@ -3,6 +3,7 @@ import { Box, Button, Flex, Grid, Icon, Skeleton, Table, Text } from '@chakra-ui
 import { FiAlertTriangle, FiArrowRight, FiClock, FiDollarSign, FiFileText, FiPlus, FiTrendingUp, FiUsers } from 'react-icons/fi'
 import { format } from 'date-fns'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { formatCurrency } from '@/utils/calculations'
 import { DATE_FORMAT } from '@/constants'
@@ -15,10 +16,17 @@ import { SectionCard } from '@/components/saas/section-card'
 import { StatusChip } from '@/components/saas/status-chip'
 
 export function DashboardPage() {
-  const { invoices, clients, products, isLoading } = useStore()
+  const { invoices, clients, products, isLoading } = useStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      clients: s.clients,
+      products: s.products,
+      isLoading: s.isLoading,
+    }))
+  )
   const stats = useDashboardStats(invoices, clients, products)
 
-  const recentInvoices = invoices
+  const recentInvoices = [...invoices]
     .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
     .slice(0, 5)
 
@@ -34,7 +42,7 @@ export function DashboardPage() {
           <Skeleton h="12" w="72" rounded="2xl" />
           <Skeleton h="5" w="full" maxW="xl" rounded="2xl" />
         </Flex>
-        <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, minmax(0, 1fr))' }} gap="4">
+        <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, minmax(0, 1fr))' }} gap={{ base: '3', md: '4' }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} h="32" rounded="2xl" />
           ))}
@@ -52,10 +60,10 @@ export function DashboardPage() {
         description="Track revenue, unpaid balances, client momentum, and recent invoice activity from one polished dashboard."
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" whiteSpace="nowrap">
               <Link to="/clients">Manage clients</Link>
             </Button>
-            <Button asChild colorPalette="teal">
+            <Button asChild colorPalette="teal" whiteSpace="nowrap">
               <Link to="/invoices/new">
                 <Icon as={FiPlus} mr="2" />
                 Create invoice
@@ -73,7 +81,7 @@ export function DashboardPage() {
         />
       )}
 
-      <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, minmax(0, 1fr))' }} gap="4">
+      <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, minmax(0, 1fr))' }} gap={{ base: '3', md: '4' }}>
         <MetricCard
           label="Total revenue"
           value={formatCurrency(stats.totalRevenue)}
@@ -104,7 +112,7 @@ export function DashboardPage() {
           title="Recent invoices"
           description="See the latest billing activity and jump directly into the invoices that need attention."
           endContent={
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" whiteSpace="nowrap">
               <Link to="/invoices">
                 View all
                 <Icon as={FiArrowRight} ml="2" />
@@ -133,7 +141,7 @@ export function DashboardPage() {
                         _hover={{ bg: 'bg.muted' }}
                       >
                         <Flex direction="column" gap="2">
-                          <Text fontWeight="medium" color="blue.500">
+                          <Text fontWeight="medium" color="blue.500" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                             {invoice.invoiceNumber}
                           </Text>
                           <Text fontSize="sm" color="fg.muted">
@@ -166,16 +174,16 @@ export function DashboardPage() {
                   <Table.Body>
                     {recentInvoices.map((invoice) => (
                       <Table.Row key={invoice.id}>
-                        <Table.Cell>
+                        <Table.Cell minW="0">
                           <Link to={`/invoices/${invoice.id}`}>
-                            <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }}>
+                            <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }} whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                               {invoice.invoiceNumber}
                             </Text>
                           </Link>
                         </Table.Cell>
-                        <Table.Cell>{invoice.clientName}</Table.Cell>
-                        <Table.Cell>{format(new Date(invoice.issueDate), DATE_FORMAT)}</Table.Cell>
-                        <Table.Cell>{formatCurrency(invoice.total)}</Table.Cell>
+                        <Table.Cell minW="0">{invoice.clientName}</Table.Cell>
+                        <Table.Cell whiteSpace="nowrap">{format(new Date(invoice.issueDate), DATE_FORMAT)}</Table.Cell>
+                        <Table.Cell whiteSpace="nowrap">{formatCurrency(invoice.total)}</Table.Cell>
                         <Table.Cell>
                           <StatusChip status={invoice.status} />
                         </Table.Cell>

@@ -1,48 +1,36 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Flex, Icon } from '@chakra-ui/react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { toaster } from '@/components/ui/toaster'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { PageHeader } from '@/components/saas/page-header'
-import { InvoiceEditor, type InvoiceEditorSubmitPayload } from '@/components/invoices/invoice-editor'
+import { InvoiceEditor, type InvoiceEditorSubmitPayload } from '@/components/invoices/InvoiceEditor'
 
 export function InvoiceEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { invoices, updateInvoice, clients, products } = useStore()
+  const { invoices, updateInvoice, clients, products } = useStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      updateInvoice: s.updateInvoice,
+      clients: s.clients,
+      products: s.products,
+    }))
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const invoice = invoices.find((i) => i.id === id)
 
-  if (!invoice) {
-    return (
-      <Flex direction="column" gap="4" align="center" py="12">
-        <Flex direction="column" gap="2" align="center" textAlign="center">
-          <Flex as="h1" fontSize="2xl" fontWeight="bold">
-            Invoice not found
-          </Flex>
-          <Flex as="p" fontSize="sm" color="fg.muted">
-            The invoice you&apos;re trying to edit doesn&apos;t exist.
-          </Flex>
-        </Flex>
-        <Button asChild colorPalette="teal">
-          <Link to="/invoices">
-            <Icon as={FiArrowLeft} mr="2" />
-            Back to invoices
-          </Link>
-        </Button>
-      </Flex>
-    )
-  }
-
-  const handleSave = async ({
+  const handleSave = useCallback(async ({
     values,
     subtotal,
     discountAmount,
     taxAmount,
     total,
   }: InvoiceEditorSubmitPayload) => {
+    if (!invoice) return
     const selectedClient = clients.find((c) => c.id === values.clientId)
     if (!selectedClient) {
       toaster.create({ title: 'Please select a client', type: 'error' })
@@ -73,6 +61,27 @@ export function InvoiceEditPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }, [invoice, clients, updateInvoice, navigate])
+
+  if (!invoice) {
+    return (
+      <Flex direction="column" gap="4" align="center" py={{ base: '8', md: '12' }}>
+        <Flex direction="column" gap="2" align="center" textAlign="center">
+          <Flex as="h1" fontSize="2xl" fontWeight="bold">
+            Invoice not found
+          </Flex>
+          <Flex as="p" fontSize="sm" color="fg.muted">
+            The invoice you&apos;re trying to edit doesn&apos;t exist.
+          </Flex>
+        </Flex>
+        <Button asChild colorPalette="teal" whiteSpace="nowrap">
+          <Link to="/invoices">
+            <Icon as={FiArrowLeft} mr="2" />
+            Back to invoices
+          </Link>
+        </Button>
+      </Flex>
+    )
   }
 
   return (
@@ -82,7 +91,7 @@ export function InvoiceEditPage() {
         title={`Invoice ${invoice.invoiceNumber}`}
         description="Use the same editor as invoice creation so updates follow one consistent workflow."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" whiteSpace="nowrap">
             <Link to={`/invoices/${invoice.id}`}>
               <Icon as={FiArrowLeft} mr="2" />
               Back to invoice

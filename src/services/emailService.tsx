@@ -1,15 +1,14 @@
 import { createElement } from 'react'
-import { InvoiceEmail, OverdueEmail, ReminderEmail } from '@/emails'
 import { InvoicePDFDocument } from '@/components/invoices/InvoicePDF'
+import { TEAL_500 } from '@/emails/email-theme'
+import {
+  renderInvoiceEmail,
+  renderOverdueEmail,
+  renderReminderEmail,
+} from '@/lib/email-renderer'
 import { tauriApi } from '@/lib/tauri-api'
-import type {
-  Client,
-  Company,
-  EmailTemplate,
-  Invoice,
-  SMTPSettings,
-} from '@/types'
-import { render } from '@react-email/render'
+import { toaster } from '@/components/ui/toaster'
+import type { Client, Company, EmailTemplate, Invoice } from '@/types'
 import { pdf } from '@react-pdf/renderer'
 
 function replacePlaceholders(template: string, variables: Record<string, string>): string {
@@ -28,7 +27,9 @@ function buildVariables(
     companyName: company.name || 'Your Company',
     total,
     dueDate: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A',
+    invoiceDate: invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A',
     issueDate: invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A',
+    pdfNote: invoice.notes || '',
     clientEmail: client.email || '',
     companyEmail: company.email || '',
     companyPhone: company.phone || '',
@@ -39,7 +40,7 @@ function buildVariables(
   }
 
   let statusMessage = ''
-  let statusColor = '#2563eb'
+  let statusColor = TEAL_500
 
   switch (invoice.status) {
     case 'paid':
@@ -55,12 +56,12 @@ function buildVariables(
     case 'sent':
       statusMessage =
         'This invoice is awaiting payment. Please review the details and process payment by the due date.'
-      statusColor = '#ea580c'
+      statusColor = TEAL_500
       break
     default:
       statusMessage =
         'Please review the attached invoice and process payment by the due date.'
-      statusColor = '#2563eb'
+      statusColor = TEAL_500
   }
 
   variables.statusMessage = statusMessage
@@ -72,6 +73,13 @@ function buildVariables(
   dueDate.setHours(0, 0, 0, 0)
   const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
   variables.daysOverdue = String(Math.max(0, daysOverdue))
+
+  const issueDate = invoice.issueDate ? new Date(invoice.issueDate) : null
+  if (issueDate) issueDate.setHours(0, 0, 0, 0)
+  const daysSinceSent = issueDate
+    ? Math.floor((today.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 0
+  variables.daysSinceSent = String(Math.max(0, daysSinceSent))
 
   return variables
 }
@@ -93,14 +101,10 @@ export async function sendInvoice(
   invoice: Invoice,
   client: Client,
   company: Company,
-  smtpSettings: SMTPSettings,
   template?: EmailTemplate
 ): Promise<boolean> {
   if (!client.email?.includes('@')) {
     throw new Error('Invalid client email address')
-  }
-  if (!smtpSettings.host || !smtpSettings.username || !smtpSettings.password) {
-    throw new Error('Incomplete SMTP settings. Configure email in Settings.')
   }
 
   const variables = buildVariables(invoice, client, company)
@@ -116,45 +120,47 @@ export async function sendInvoice(
     ? replacePlaceholders(template.subject, variables)
     : defaultSubject
 
-  const html = await render(
-    createElement(InvoiceEmail, {
-      invoiceNumber: variables.invoiceNumber,
-      clientName: variables.clientName,
-      companyName: variables.companyName,
-      total: variables.total,
-      dueDate: variables.dueDate,
-      statusMessage: variables.statusMessage,
-      statusColor: variables.statusColor,
-    })
-  )
+  const companyLogoUrl =
+    company.logo && (company.logo.startsWith('data:') || company.logo.startsWith('http'))
+      ? company.logo
+      : undefined
+
+  const html = await renderInvoiceEmail({
+    invoiceNumber: variables.invoiceNumber,
+    invoiceDate: variables.invoiceDate,
+    clientName: variables.clientName,
+    companyName: variables.companyName,
+    companyLogoUrl,
+    total: variables.total,
+    dueDate: variables.dueDate,
+    pdfNote: variables.pdfNote || undefined,
+    statusMessage: variables.statusMessage,
+    statusColor: variables.statusColor,
+  })
 
   let pdfBase64: string | undefined
   let pdfFilename: string | undefined
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React-PDF pdf() expects DocumentProps, createElement returns generic ReactElement
     const pdfDoc = pdf(createElement(InvoicePDFDocument, { invoice, company, client }) as any)
     const blob = await pdfDoc.toBlob()
     pdfBase64 = await blobToBase64(blob)
     pdfFilename = `invoice-${invoice.invoiceNumber}.pdf`
   } catch (err) {
-    console.error('PDF generation failed:', err)
+    toaster.create({
+      title: 'Failed to generate PDF',
+      description: err instanceof Error ? err.message : 'PDF generation failed',
+      type: 'error',
+    })
+    throw err
   }
 
   try {
     await tauriApi.sendEmail({
-      smtp: {
-        host: smtpSettings.host,
-        port: smtpSettings.port ?? 587,
-        secure: smtpSettings.secure ?? false,
-        username: smtpSettings.username,
-        password: smtpSettings.password,
-        fromName: smtpSettings.fromName || company.name,
-        fromEmail: smtpSettings.fromEmail || company.email,
-      },
       to: client.email,
       subject,
-      html,
+      htmlBody: html,
       pdfBase64,
       pdfFilename,
     })
@@ -169,47 +175,39 @@ export async function sendReminder(
   invoice: Invoice,
   client: Client,
   company: Company,
-  smtpSettings: SMTPSettings,
   template?: EmailTemplate
 ): Promise<boolean> {
   if (!client.email?.includes('@')) {
     throw new Error('Invalid client email address')
   }
-  if (!smtpSettings.host || !smtpSettings.username || !smtpSettings.password) {
-    throw new Error('Incomplete SMTP settings. Configure email in Settings.')
-  }
 
   const variables = buildVariables(invoice, client, company)
+
+  const companyLogoUrl =
+    company.logo && (company.logo.startsWith('data:') || company.logo.startsWith('http'))
+      ? company.logo
+      : undefined
 
   const defaultSubject = `Payment Reminder - Invoice ${variables.invoiceNumber}`
   const subject = template?.subject
     ? replacePlaceholders(template.subject, variables)
     : defaultSubject
 
-  const html = await render(
-    createElement(ReminderEmail, {
-      invoiceNumber: variables.invoiceNumber,
-      clientName: variables.clientName,
-      companyName: variables.companyName,
-      total: variables.total,
-      dueDate: variables.dueDate,
-    })
-  )
+  const html = await renderReminderEmail({
+    invoiceNumber: variables.invoiceNumber,
+    clientName: variables.clientName,
+    companyName: variables.companyName,
+    companyLogoUrl,
+    total: variables.total,
+    dueDate: variables.dueDate,
+    daysSinceSent: parseInt(variables.daysSinceSent, 10) || 0,
+  })
 
   try {
     await tauriApi.sendEmail({
-      smtp: {
-        host: smtpSettings.host,
-        port: smtpSettings.port ?? 587,
-        secure: smtpSettings.secure ?? false,
-        username: smtpSettings.username,
-        password: smtpSettings.password,
-        fromName: smtpSettings.fromName || company.name,
-        fromEmail: smtpSettings.fromEmail || company.email,
-      },
       to: client.email,
       subject,
-      html,
+      htmlBody: html,
     })
     return true
   } catch (err) {
@@ -222,49 +220,40 @@ export async function sendOverdueNotice(
   invoice: Invoice,
   client: Client,
   company: Company,
-  smtpSettings: SMTPSettings,
   template?: EmailTemplate
 ): Promise<boolean> {
   if (!client.email?.includes('@')) {
     throw new Error('Invalid client email address')
   }
-  if (!smtpSettings.host || !smtpSettings.username || !smtpSettings.password) {
-    throw new Error('Incomplete SMTP settings. Configure email in Settings.')
-  }
 
   const variables = buildVariables(invoice, client, company)
   const daysOverdue = parseInt(variables.daysOverdue, 10) || 0
+
+  const companyLogoUrl =
+    company.logo && (company.logo.startsWith('data:') || company.logo.startsWith('http'))
+      ? company.logo
+      : undefined
 
   const defaultSubject = `OVERDUE: Invoice ${variables.invoiceNumber}`
   const subject = template?.subject
     ? replacePlaceholders(template.subject, variables)
     : defaultSubject
 
-  const html = await render(
-    createElement(OverdueEmail, {
-      invoiceNumber: variables.invoiceNumber,
-      clientName: variables.clientName,
-      companyName: variables.companyName,
-      total: variables.total,
-      dueDate: variables.dueDate,
-      daysOverdue,
-    })
-  )
+  const html = await renderOverdueEmail({
+    invoiceNumber: variables.invoiceNumber,
+    clientName: variables.clientName,
+    companyName: variables.companyName,
+    companyLogoUrl,
+    total: variables.total,
+    dueDate: variables.dueDate,
+    daysOverdue,
+  })
 
   try {
     await tauriApi.sendEmail({
-      smtp: {
-        host: smtpSettings.host,
-        port: smtpSettings.port ?? 587,
-        secure: smtpSettings.secure ?? false,
-        username: smtpSettings.username,
-        password: smtpSettings.password,
-        fromName: smtpSettings.fromName || company.name,
-        fromEmail: smtpSettings.fromEmail || company.email,
-      },
       to: client.email,
       subject,
-      html,
+      htmlBody: html,
     })
     return true
   } catch (err) {

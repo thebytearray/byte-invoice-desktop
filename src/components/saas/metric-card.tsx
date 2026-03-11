@@ -27,15 +27,15 @@ export function MetricCard({ label, value, detail, icon }: MetricCardProps) {
                 {icon}
               </Flex>
             )}
-            <Text fontSize="sm" color="fg.muted" lineClamp={1}>
+            <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" title={label}>
               {label}
             </Text>
           </Flex>
-          <Text fontSize="xl" fontWeight="semibold" lineClamp={1} title={value}>
+          <Text fontSize="xl" fontWeight="semibold" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" title={value}>
             {value}
           </Text>
           {detail && (
-            <Text fontSize="xs" color="fg.muted" lineClamp={1} title={detail}>
+            <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" title={detail}>
               {detail}
             </Text>
           )}

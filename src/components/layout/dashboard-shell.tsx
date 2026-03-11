@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Box, Flex, Icon, IconButton, Drawer, ScrollArea, Text } from '@chakra-ui/react'
-import { FiFileText, FiHome, FiMenu, FiPackage, FiSettings, FiUsers, FiX } from 'react-icons/fi'
+import { FiChevronLeft, FiChevronRight, FiFileText, FiHome, FiMenu, FiPackage, FiSettings, FiUsers, FiX } from 'react-icons/fi'
 import { ColorModeButton } from '@/components/ui/color-mode'
 import { AppLogo } from './app-logo'
 
@@ -15,7 +15,9 @@ const navigation = [
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = useLocation().pathname
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const activeItem = useMemo(
     () => navigation.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)),
@@ -31,50 +33,77 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           position="sticky"
           top="0"
           h="100vh"
-          w="64"
+          w={sidebarCollapsed ? '16' : '64'}
           flexShrink={0}
           flexDirection="column"
           borderRightWidth="1px"
           borderColor="border"
-          px="5"
+          px={sidebarCollapsed ? '2' : '5'}
           py="6"
           bg="bg.subtle"
+          transition="width 0.2s, padding 0.2s"
         >
-          <Box mb="8">
-            <AppLogo />
-          </Box>
+          <Flex mb="8" direction="column" gap="2">
+            <Flex justify={sidebarCollapsed ? 'center' : 'flex-end'}>
+              <IconButton
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                variant="ghost"
+                size="sm"
+                minW="8"
+                minH="8"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              >
+                <Icon as={sidebarCollapsed ? FiChevronRight : FiChevronLeft} boxSize="4" />
+              </IconButton>
+            </Flex>
+            <AppLogo compact={sidebarCollapsed} />
+          </Flex>
           <Flex as="nav" direction="column" gap="2">
             {navigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
               return (
-                <Link key={item.href} to={item.href}>
+                <Box
+                  key={item.href}
+                  as="button"
+                  cursor="pointer"
+                  textAlign="left"
+                  w="full"
+                  onClick={() => navigate(item.href)}
+                  title={sidebarCollapsed ? item.label : undefined}
+                >
                   <Flex
                     align="center"
+                    justify={sidebarCollapsed ? 'center' : 'flex-start'}
                     gap="3"
                     rounded="2xl"
-                    px="4"
+                    px={sidebarCollapsed ? '2' : '4'}
                     py="3"
                     fontSize="sm"
                     fontWeight="medium"
                     bg={isActive ? 'bg.muted' : 'transparent'}
                     color={isActive ? 'fg' : 'fg.muted'}
                     _hover={{ bg: 'bg.subtle', color: 'fg' }}
+                    minW="0"
                   >
                     <Icon style={{ width: 16, height: 16 }} />
-                    <span>{item.label}</span>
+                    {!sidebarCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
                   </Flex>
-                </Link>
+                </Box>
               )
             })}
           </Flex>
-          <Box mt="auto" rounded="3xl" borderWidth="1px" borderColor="border" p="4" bg="bg.subtle">
-            <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.24em" color="fg.muted">
-              Workspace
-            </Text>
-            <Text mt="2" fontSize="sm" color="fg.muted">
-              Keep invoices, clients, settings, and fulfillment in one focused SaaS workspace.
-            </Text>
+          <Box mt="auto" minW="0">
+            {!sidebarCollapsed && (
+              <Box rounded="3xl" borderWidth="1px" borderColor="border" p="4" bg="bg.subtle" minW="0">
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.24em" color="fg.muted" whiteSpace="nowrap">
+                  Workspace
+                </Text>
+                <Text mt="2" fontSize="sm" color="fg.muted" lineClamp={2}>
+                  Keep invoices, clients, settings, and fulfillment in one focused SaaS workspace.
+                </Text>
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -98,17 +127,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   display={{ md: 'none' }}
                   aria-label="Open menu"
                   variant="ghost"
-                  minW="10"
-                  minH="10"
+                  minW={{ base: '11', md: '10' }}
+                  minH={{ base: '11', md: '10' }}
                   onClick={() => setMobileOpen(true)}
                 >
                   <Icon as={FiMenu} boxSize="5" />
                 </IconButton>
-                <Box>
-                  <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.26em" color="fg.muted">
+                <Box minW="0">
+                  <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.26em" color="fg.muted" whiteSpace="nowrap">
                     Billing workspace
                   </Text>
-                  <Text fontSize="lg" fontWeight="semibold">
+                  <Text fontSize="lg" fontWeight="semibold" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                     {activeItem?.label ?? 'Dashboard'}
                   </Text>
                 </Box>
@@ -138,11 +167,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Drawer.Root open={mobileOpen} placement="start" onOpenChange={(e) => setMobileOpen(e.open)}>
         <Drawer.Backdrop />
         <Drawer.Positioner>
-          <Drawer.Content maxW="xs">
+          <Drawer.Content maxW={{ base: 'full', sm: 'xs' }}>
             <Drawer.Header pt="calc(1rem + env(safe-area-inset-top, 0px))">
               <Flex align="center" justify="space-between" w="full">
                 <AppLogo />
-                <IconButton aria-label="Close" variant="ghost" minW="10" minH="10" onClick={() => setMobileOpen(false)}>
+                <IconButton aria-label="Close" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }} onClick={() => setMobileOpen(false)}>
                   <Icon as={FiX} boxSize="5" />
                 </IconButton>
               </Flex>
@@ -153,7 +182,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   const Icon = item.icon
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
                   return (
-                    <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)}>
+                    <Box
+                      key={item.href}
+                      as="button"
+                      cursor="pointer"
+                      textAlign="left"
+                      w="full"
+                      onClick={() => {
+                        navigate(item.href)
+                        setMobileOpen(false)
+                      }}
+                    >
                       <Flex
                         align="center"
                         gap="3"
@@ -167,9 +206,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         _hover={{ bg: 'bg.subtle', color: 'fg' }}
                       >
                         <Icon style={{ width: 16, height: 16 }} />
-                        <span>{item.label}</span>
+                        <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>
                       </Flex>
-                    </Link>
+                    </Box>
                   )
                 })}
               </Flex>

@@ -20,10 +20,30 @@ body {
   user-select: none;
 }
 
+/* Non-selectable UI elements */
+button,
+[role="button"],
+nav,
+nav a,
+aside,
+[data-slot="sidebar"],
+[data-slot="nav"],
+svg,
+[aria-label] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Allow text selection in inputs and editable areas */
 input,
 textarea,
 [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Content areas where users may want to copy text */
+[data-selectable="true"] {
   -webkit-user-select: text;
   user-select: text;
 }

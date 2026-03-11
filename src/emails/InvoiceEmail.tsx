@@ -1,210 +1,213 @@
 import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
+  Row,
+  Column,
   Section,
   Text,
 } from '@react-email/components'
+import { EmailLayout } from './EmailLayout'
+import {
+  BORDER_COLOR,
+  DETAILS_BG,
+  FONT_SIZE_MD,
+  FONT_SIZE_SM,
+  FONT_SIZE_XS,
+  FONT_WEIGHT_MEDIUM,
+  FONT_WEIGHT_SEMIBOLD,
+  LINE_HEIGHT_NORMAL,
+  LINE_HEIGHT_RELAXED,
+  RADIUS_MD,
+  SPACE_1,
+  SPACE_2,
+  SPACE_4,
+  SPACE_5,
+  SPACE_6,
+  TEXT_MUTED,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+} from './email-theme'
 
 export interface InvoiceEmailProps {
   invoiceNumber: string
+  invoiceDate: string
   clientName: string
   companyName: string
+  companyLogoUrl?: string
   total: string
   dueDate: string
+  pdfNote?: string
   statusMessage: string
   statusColor: string
 }
 
 export function InvoiceEmail({
   invoiceNumber,
+  invoiceDate,
   clientName,
   companyName,
+  companyLogoUrl,
   total,
   dueDate,
+  pdfNote,
   statusMessage,
   statusColor,
 }: InvoiceEmailProps) {
   return (
-    <Html lang="en">
-      <Head />
-      <Body style={main}>
-        <Container style={container}>
-          <Section
-            style={{
-              ...header,
-              background: `linear-gradient(135deg, ${statusColor}, ${statusColor}dd)`,
-            }}
-          >
-            <Heading style={headerTitle}>Invoice {invoiceNumber}</Heading>
-            <Text style={headerSubtitle}>{companyName}</Text>
-          </Section>
-          <Section style={content}>
-            <Text style={greeting}>Dear {clientName},</Text>
-            <Section
-              style={{
-                ...statusBadge,
-                backgroundColor: `${statusColor}15`,
-                color: statusColor,
-                border: `2px solid ${statusColor}30`,
-              }}
-            >
-              <Text style={statusText}>{statusMessage}</Text>
-            </Section>
-            <Section
-              style={{
-                ...invoiceDetails,
-                borderLeft: `4px solid ${statusColor}`,
-              }}
-            >
-              <Text style={detailRow}>
-                <span style={detailLabel}>Invoice:</span>
-                <span style={detailValue}>#{invoiceNumber}</span>
-              </Text>
-              <Text style={detailRow}>
-                <span style={detailLabel}>Amount:</span>
-                <span style={detailValue}>${total}</span>
-              </Text>
-              <Text style={{ ...detailRow, ...detailRowLast }}>
-                <span style={detailLabel}>Due date:</span>
-                <span style={detailValue}>{dueDate}</span>
-              </Text>
-            </Section>
-            <Text style={message}>
-              Please find your invoice attached. If you have any questions,
-              don&apos;t hesitate to reach out.
-            </Text>
-            <Text style={signOff}>
-              Best regards,
-              <br />
-              {companyName}
-            </Text>
-          </Section>
-          <Hr style={hr} />
-          <Section style={footer}>
-            <Text style={footerText}>This is an automated message from {companyName}.</Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+    <EmailLayout
+      companyName={companyName}
+      companyLogoUrl={companyLogoUrl}
+      headerTitle={`Invoice #${invoiceNumber}`}
+      headerSubtitle={companyName}
+      headerAccentColor={statusColor}
+      ctaHref="#"
+      ctaLabel="View Invoice"
+      ctaColor={statusColor}
+    >
+      <Text style={greeting}>Dear {clientName},</Text>
+
+      <Section
+        style={{
+          ...statusBanner,
+          backgroundColor: DETAILS_BG,
+          borderLeft: `4px solid ${statusColor}`,
+        }}
+      >
+        <Text style={{ ...statusText, color: statusColor }}>
+          {statusMessage}
+        </Text>
+      </Section>
+
+      <Section style={detailsCard}>
+        <Row>
+          <Column style={detailLabel}>Invoice</Column>
+          <Column style={{ ...detailValue, textAlign: 'right' as const }}>
+            #{invoiceNumber}
+          </Column>
+        </Row>
+        <Row>
+          <Column style={detailLabel}>Date</Column>
+          <Column style={{ ...detailValue, textAlign: 'right' as const }}>
+            {invoiceDate}
+          </Column>
+        </Row>
+        <Row>
+          <Column style={detailLabel}>Amount Due</Column>
+          <Column style={{ ...detailValue, textAlign: 'right' as const }}>
+            ${total}
+          </Column>
+        </Row>
+        <Row>
+          <Column style={{ ...detailLabel, ...detailLabelLast }}>Due Date</Column>
+          <Column style={{ ...detailValue, ...detailValueLast, textAlign: 'right' as const }}>
+            {dueDate}
+          </Column>
+        </Row>
+      </Section>
+
+      {pdfNote ? (
+        <Section style={noteSection}>
+          <Text style={noteLabel}>Note</Text>
+          <Text style={noteText}>{pdfNote}</Text>
+        </Section>
+      ) : null}
+
+      <Text style={bodyText}>
+        Please find your invoice attached to this email. If you have any
+        questions about this invoice, please don&apos;t hesitate to reach out.
+      </Text>
+
+      <Text style={signOff}>
+        Best regards,
+        <br />
+        {companyName}
+      </Text>
+    </EmailLayout>
   )
 }
 
-const main = {
-  backgroundColor: '#f9fafb',
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif',
-}
-
-const container = {
-  margin: '0 auto',
-  padding: '20px',
-  maxWidth: '600px',
-  backgroundColor: '#ffffff',
-  borderRadius: '12px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-}
-
-const header = {
-  padding: '32px 24px',
-  textAlign: 'center' as const,
-  color: 'white',
-}
-
-const headerTitle = {
-  margin: '0 0 8px 0',
-  fontSize: '28px',
-  fontWeight: '700',
-}
-
-const headerSubtitle = {
-  margin: '0',
-  fontSize: '16px',
-  opacity: 0.9,
-}
-
-const content = {
-  padding: '32px 24px',
-}
-
 const greeting = {
-  fontSize: '18px',
-  marginBottom: '24px',
-  color: '#1f2937',
+  margin: `0 0 ${SPACE_5} 0`,
+  fontSize: FONT_SIZE_MD,
+  fontWeight: FONT_WEIGHT_SEMIBOLD,
+  color: TEXT_PRIMARY,
 }
 
-const statusBadge = {
-  padding: '16px 20px',
-  borderRadius: '8px',
-  marginBottom: '24px',
+const statusBanner = {
+  padding: `${SPACE_4} ${SPACE_5}`,
+  borderRadius: RADIUS_MD,
+  marginBottom: SPACE_6,
 }
 
 const statusText = {
   margin: 0,
-  fontSize: '14px',
-  lineHeight: 1.6,
+  fontSize: FONT_SIZE_SM,
+  lineHeight: LINE_HEIGHT_NORMAL,
+  fontWeight: FONT_WEIGHT_MEDIUM,
 }
 
-const invoiceDetails = {
-  backgroundColor: '#f8fafc',
-  borderRadius: '8px',
-  padding: '24px',
-  margin: '24px 0',
-}
-
-const detailRow = {
-  margin: '0 0 12px 0',
-  display: 'flex',
-  justifyContent: 'space-between',
-}
-
-const detailRowLast = {
-  marginBottom: 0,
-  paddingTop: '12px',
-  borderTop: '2px solid #e5e7eb',
-  fontWeight: '700',
-  fontSize: '18px',
+const detailsCard = {
+  backgroundColor: DETAILS_BG,
+  borderRadius: RADIUS_MD,
+  padding: `${SPACE_5} ${SPACE_6}`,
+  marginBottom: SPACE_6,
+  border: `1px solid ${BORDER_COLOR}`,
 }
 
 const detailLabel = {
-  color: '#6b7280',
-  fontWeight: '500',
+  padding: `${SPACE_2} 0`,
+  fontSize: FONT_SIZE_SM,
+  color: TEXT_MUTED,
+  fontWeight: FONT_WEIGHT_MEDIUM,
+}
+
+const detailLabelLast = {
+  borderTop: `1px solid ${BORDER_COLOR}`,
+  paddingTop: SPACE_4,
+  marginTop: SPACE_1,
 }
 
 const detailValue = {
-  fontWeight: '600',
-  color: '#1f2937',
+  padding: `${SPACE_2} 0`,
+  fontSize: FONT_SIZE_SM,
+  color: TEXT_PRIMARY,
+  fontWeight: FONT_WEIGHT_SEMIBOLD,
 }
 
-const message = {
-  fontSize: '14px',
-  lineHeight: 1.6,
-  color: '#374151',
-  margin: '24px 0',
+const detailValueLast = {
+  borderTop: `1px solid ${BORDER_COLOR}`,
+  paddingTop: SPACE_4,
+  marginTop: SPACE_1,
+  fontSize: FONT_SIZE_MD,
+}
+
+const noteSection = {
+  marginBottom: SPACE_6,
+}
+
+const noteLabel = {
+  margin: `0 0 ${SPACE_1} 0`,
+  fontSize: FONT_SIZE_XS,
+  fontWeight: FONT_WEIGHT_SEMIBOLD,
+  color: TEXT_MUTED,
+  textTransform: 'uppercase' as const,
+}
+
+const noteText = {
+  margin: 0,
+  fontSize: FONT_SIZE_SM,
+  color: TEXT_SECONDARY,
+  lineHeight: LINE_HEIGHT_NORMAL,
+}
+
+const bodyText = {
+  margin: `0 0 ${SPACE_6} 0`,
+  fontSize: FONT_SIZE_SM,
+  color: TEXT_SECONDARY,
+  lineHeight: LINE_HEIGHT_RELAXED,
 }
 
 const signOff = {
-  fontSize: '14px',
-  lineHeight: 1.6,
-  color: '#374151',
-  margin: '24px 0',
-}
-
-const hr = {
-  borderColor: '#e5e7eb',
-  margin: '0',
-}
-
-const footer = {
-  padding: '24px',
-  textAlign: 'center' as const,
-}
-
-const footerText = {
-  color: '#6b7280',
-  fontSize: '14px',
-  margin: '0',
+  margin: 0,
+  fontSize: FONT_SIZE_SM,
+  color: TEXT_SECONDARY,
+  lineHeight: LINE_HEIGHT_RELAXED,
 }

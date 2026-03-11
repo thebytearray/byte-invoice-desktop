@@ -12,7 +12,7 @@ const statusLabels: Record<InvoiceStatus, string> = {
 export function StatusChip({ status }: { status: InvoiceStatus }) {
   const colorPalette = INVOICE_STATUS_COLORS[status] ?? 'gray'
   return (
-    <Badge colorPalette={colorPalette} size="sm" variant="subtle" textTransform="capitalize">
+    <Badge colorPalette={colorPalette} size="sm" variant="subtle" textTransform="capitalize" whiteSpace="nowrap">
       {statusLabels[status]}
     </Badge>
   )

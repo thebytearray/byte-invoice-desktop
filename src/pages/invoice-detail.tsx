@@ -5,7 +5,9 @@ import { Box, Button, Flex, Icon, Table, Text } from '@chakra-ui/react'
 import { FiArrowLeft, FiDownload, FiEdit, FiMail, FiTrash2 } from 'react-icons/fi'
 import { format } from 'date-fns'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { DATE_FORMAT } from '@/constants'
+import { ResponsiveList } from '@/components/layout/responsive-list'
 import { ScrollableTable } from '@/components/layout/scrollable-table'
 import { PageHeader } from '@/components/saas/page-header'
 import { SectionCard } from '@/components/saas/section-card'
@@ -18,7 +20,16 @@ import { toaster } from '@/components/ui/toaster'
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { invoices, updateInvoice, deleteInvoice, company, clients, settings } = useStore()
+  const { invoices, updateInvoice, deleteInvoice, company, clients, settings } = useStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      updateInvoice: s.updateInvoice,
+      deleteInvoice: s.deleteInvoice,
+      company: s.company,
+      clients: s.clients,
+      settings: s.settings,
+    }))
+  )
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [sending, setSending] = useState(false)
 
@@ -37,7 +48,7 @@ export function InvoiceDetailPage() {
             The invoice you&apos;re looking for doesn&apos;t exist.
           </Text>
         </Flex>
-        <Button asChild colorPalette="teal">
+        <Button asChild colorPalette="teal" whiteSpace="nowrap">
           <Link to="/invoices">
             <Icon as={FiArrowLeft} mr="2" />
             Back to invoices
@@ -62,7 +73,7 @@ export function InvoiceDetailPage() {
     setSending(true)
     try {
       const template = settings.emailTemplates?.find((t) => t.type === 'invoice')
-      await sendInvoice(invoice, client, company, settings.smtp, template)
+      await sendInvoice(invoice, client, company, template)
       await updateInvoice(invoice.id, { emailSent: true })
       toaster.create({ title: 'Invoice sent successfully!', type: 'success' })
     } catch (e) {
@@ -84,13 +95,13 @@ export function InvoiceDetailPage() {
         description={`Created on ${format(new Date(invoice.issueDate), DATE_FORMAT)} and due ${format(new Date(invoice.dueDate), DATE_FORMAT)}.`}
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" whiteSpace="nowrap">
               <Link to="/invoices">
                 <Icon as={FiArrowLeft} mr="2" />
                 Back
               </Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" whiteSpace="nowrap">
               <Link to={`/invoices/edit/${invoice.id}`}>
                 <Icon as={FiEdit} mr="2" />
                 Edit
@@ -123,6 +134,7 @@ export function InvoiceDetailPage() {
                   variant={invoice.status === status ? 'solid' : 'outline'}
                   colorPalette={invoice.status === status ? 'teal' : 'gray'}
                   onClick={() => handleStatusChange(status)}
+                  whiteSpace="nowrap"
                 >
                   {status}
                 </Button>
@@ -148,7 +160,7 @@ export function InvoiceDetailPage() {
             )}
 
             {client && company.name && (
-              <Flex gap="2" flexWrap="wrap">
+              <Flex gap="2" flexWrap="wrap" css={{ '& button': { flexShrink: 0 } }}>
                 <InvoicePDFDownload invoice={invoice} company={company} client={client}>
                   {({ loading }) => (
                     <Button
@@ -156,6 +168,7 @@ export function InvoiceDetailPage() {
                       variant="outline"
                       disabled={loading}
                       asChild
+                      whiteSpace="nowrap"
                     >
                       <Box
                         as="span"
@@ -175,6 +188,7 @@ export function InvoiceDetailPage() {
                   colorPalette="teal"
                   onClick={handleSendInvoice}
                   loading={sending}
+                  whiteSpace="nowrap"
                   disabled={
                     !client.email?.includes('@') ||
                     !settings.smtp?.host ||
@@ -194,6 +208,7 @@ export function InvoiceDetailPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setDeleteOpen(true)}
+                whiteSpace="nowrap"
               >
                 <Icon as={FiTrash2} mr="2" />
                 Delete invoice
@@ -202,10 +217,11 @@ export function InvoiceDetailPage() {
           </Flex>
         </SectionCard>
 
-        <SectionCard
-          title="Invoice summary"
-          description="Review line items, billing details, and notes using the same hierarchy as the editor."
-        >
+        <Box data-selectable="true">
+          <SectionCard
+            title="Invoice summary"
+            description="Review line items, billing details, and notes using the same hierarchy as the editor."
+          >
           <Flex direction="column" gap="6">
             <Flex gap="4" flexWrap="wrap" direction={{ base: 'column', md: 'row' }} alignItems="flex-start">
               <Box flex={{ base: '0 0 auto', md: '1' }} rounded="2xl" borderWidth="1px" borderColor="border" p="4" bg="bg.subtle">
@@ -240,33 +256,63 @@ export function InvoiceDetailPage() {
               )}
             </Flex>
 
-            <ScrollableTable>
-              <Table.Root size="sm">
-                <Table.Header>
-                  <Table.Row>
-                  <Table.ColumnHeader>Description</Table.ColumnHeader>
-                  <Table.ColumnHeader>Qty</Table.ColumnHeader>
-                  <Table.ColumnHeader>Unit price</Table.ColumnHeader>
-                  <Table.ColumnHeader>Total</Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {invoice.items.map((item, index) => (
-                  <Table.Row key={`${item.productId}-${index}`}>
-                    <Table.Cell>
-                      <Text fontWeight="medium">{item.productName}</Text>
-                      <Text fontSize="xs" color="fg.muted">
-                        {item.description}
-                      </Text>
-                    </Table.Cell>
-                    <Table.Cell>{item.quantity}</Table.Cell>
-                    <Table.Cell>${item.unitPrice.toFixed(2)}</Table.Cell>
-                    <Table.Cell>${item.total.toFixed(2)}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-              </Table.Root>
-            </ScrollableTable>
+            <ResponsiveList
+              cards={
+                <Flex direction="column" gap="3">
+                  {invoice.items.map((item, index) => (
+                    <Box
+                      key={`${item.productId}-${index}`}
+                      rounded="2xl"
+                      borderWidth="1px"
+                      borderColor="border"
+                      p="4"
+                      bg="bg.subtle"
+                    >
+                      <Flex direction="column" gap="2">
+                        <Text fontWeight="medium">{item.productName}</Text>
+                        <Text fontSize="xs" color="fg.muted" lineClamp={2}>
+                          {item.description}
+                        </Text>
+                        <Flex justify="space-between" align="center" flexWrap="wrap" gap="2" fontSize="sm">
+                          <Text color="fg.muted">Qty: {item.quantity}</Text>
+                          <Text color="fg.muted">Unit: ${item.unitPrice.toFixed(2)}</Text>
+                          <Text fontWeight="semibold">${item.total.toFixed(2)}</Text>
+                        </Flex>
+                      </Flex>
+                    </Box>
+                  ))}
+                </Flex>
+              }
+              table={
+                <ScrollableTable>
+                  <Table.Root size="sm">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>Description</Table.ColumnHeader>
+                        <Table.ColumnHeader>Qty</Table.ColumnHeader>
+                        <Table.ColumnHeader>Unit price</Table.ColumnHeader>
+                        <Table.ColumnHeader>Total</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {invoice.items.map((item, index) => (
+                        <Table.Row key={`${item.productId}-${index}`}>
+                          <Table.Cell minW="0">
+                            <Text fontWeight="medium">{item.productName}</Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              {item.description}
+                            </Text>
+                          </Table.Cell>
+                          <Table.Cell whiteSpace="nowrap">{item.quantity}</Table.Cell>
+                          <Table.Cell whiteSpace="nowrap">${item.unitPrice.toFixed(2)}</Table.Cell>
+                          <Table.Cell whiteSpace="nowrap">${item.total.toFixed(2)}</Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </ScrollableTable>
+              }
+            />
 
             <Box ml={{ base: 0, md: 'auto' }} maxW={{ base: 'full', md: 'md' }} w={{ base: 'full', md: 'auto' }} rounded="2xl" borderWidth="1px" borderColor="border" p="4" bg="bg.subtle">
               <Flex direction="column" gap="3" fontSize="sm" color="fg.muted">
@@ -305,6 +351,7 @@ export function InvoiceDetailPage() {
             )}
           </Flex>
         </SectionCard>
+        </Box>
       </Flex>
 
       <Dialog.Root open={deleteOpen} onOpenChange={(e) => setDeleteOpen(e.open)} placement="center">
@@ -319,10 +366,10 @@ export function InvoiceDetailPage() {
               <Dialog.CloseTrigger />
             </Dialog.Header>
             <Dialog.Footer>
-              <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} whiteSpace="nowrap">
                 Cancel
               </Button>
-              <Button colorPalette="red" onClick={handleDelete}>
+              <Button colorPalette="red" onClick={handleDelete} whiteSpace="nowrap">
                 Delete invoice
               </Button>
             </Dialog.Footer>

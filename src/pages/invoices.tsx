@@ -4,6 +4,7 @@ import { Box, Button, Flex, Grid, Icon, IconButton, Input, Skeleton, Table, Text
 import { FiAlertTriangle, FiClock, FiDollarSign, FiEdit, FiEye, FiFileText, FiPlus, FiTrash2, FiX } from 'react-icons/fi'
 import { format } from 'date-fns'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { formatCurrency } from '@/utils/calculations'
 import { DATE_FORMAT } from '@/constants'
 import { toaster } from '@/components/ui/toaster'
@@ -17,7 +18,13 @@ import { StatusChip } from '@/components/saas/status-chip'
 import { Dialog } from '@chakra-ui/react'
 
 export function InvoicesPage() {
-  const { invoices, deleteInvoice, isLoading } = useStore()
+  const { invoices, deleteInvoice, isLoading } = useStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      deleteInvoice: s.deleteInvoice,
+      isLoading: s.isLoading,
+    }))
+  )
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -67,7 +74,7 @@ export function InvoicesPage() {
     return (
       <Flex direction="column" gap={{ base: '4', md: '5' }}>
         <Skeleton h="12" w="72" rounded="2xl" />
-        <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap="4">
+        <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap={{ base: '3', md: '4' }}>
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} h="32" rounded="2xl" />
           ))}
@@ -84,7 +91,7 @@ export function InvoicesPage() {
         title="Invoice pipeline"
         description="Track billing status, revenue at risk, and every invoice that needs review, editing, or follow-up."
         actions={
-          <Button asChild colorPalette="teal">
+          <Button asChild colorPalette="teal" whiteSpace="nowrap">
             <Link to="/invoices/new">
               <Icon as={FiPlus} mr="2" />
               Create invoice
@@ -93,7 +100,7 @@ export function InvoicesPage() {
         }
       />
 
-      <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap="4">
+      <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap={{ base: '3', md: '4' }}>
         <MetricCard
           label="Paid revenue"
           value={formatCurrency(totalRevenue)}
@@ -123,7 +130,7 @@ export function InvoicesPage() {
         }
         endContent={
           hasActiveFilters ? (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="outline" size="sm" onClick={clearFilters} whiteSpace="nowrap">
               <Icon as={FiX} mr="2" />
               Clear filters
             </Button>
@@ -146,6 +153,7 @@ export function InvoicesPage() {
                 variant={statusFilter === status ? 'solid' : 'outline'}
                 colorPalette={statusFilter === status ? 'teal' : 'gray'}
                 onClick={() => setStatusFilter(status)}
+                whiteSpace="nowrap"
               >
                 {status === 'all' ? 'All statuses' : status}
               </Button>
@@ -170,7 +178,7 @@ export function InvoicesPage() {
           <ResponsiveList
             cards={
               <Flex direction="column" gap="3">
-                {filteredInvoices
+                {[...filteredInvoices]
                   .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
                   .map((invoice) => (
                     <Box
@@ -183,7 +191,7 @@ export function InvoicesPage() {
                     >
                       <Flex direction="column" gap="2">
                         <Link to={`/invoices/${invoice.id}`}>
-                          <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }}>
+                          <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }} whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                             {invoice.invoiceNumber}
                           </Text>
                         </Link>
@@ -199,12 +207,12 @@ export function InvoicesPage() {
                         <Flex justify="space-between" align="center" flexWrap="wrap" gap="2">
                           <StatusChip status={invoice.status} />
                           <Flex gap="2">
-                            <IconButton asChild aria-label="View" size="sm" variant="ghost" minW="10" minH="10">
+                            <IconButton asChild aria-label="View" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }}>
                               <Link to={`/invoices/${invoice.id}`}>
                                 <Icon as={FiEye} />
                               </Link>
                             </IconButton>
-                            <IconButton asChild aria-label="Edit" size="sm" variant="ghost" minW="10" minH="10">
+                            <IconButton asChild aria-label="Edit" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }}>
                               <Link to={`/invoices/edit/${invoice.id}`}>
                                 <Icon as={FiEdit} />
                               </Link>
@@ -242,32 +250,32 @@ export function InvoicesPage() {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {filteredInvoices
+                  {[...filteredInvoices]
                     .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
                     .map((invoice) => (
                       <Table.Row key={invoice.id}>
-                        <Table.Cell>
+                        <Table.Cell minW="0">
                           <Link to={`/invoices/${invoice.id}`}>
-                            <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }}>
+                            <Text fontWeight="medium" color="blue.500" _hover={{ color: 'blue.400' }} whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
                               {invoice.invoiceNumber}
                             </Text>
                           </Link>
                         </Table.Cell>
-                        <Table.Cell>{invoice.clientName}</Table.Cell>
-                        <Table.Cell>{format(new Date(invoice.issueDate), DATE_FORMAT)}</Table.Cell>
-                        <Table.Cell>{format(new Date(invoice.dueDate), DATE_FORMAT)}</Table.Cell>
-                        <Table.Cell>{formatCurrency(invoice.total)}</Table.Cell>
+                        <Table.Cell minW="0">{invoice.clientName}</Table.Cell>
+                        <Table.Cell whiteSpace="nowrap">{format(new Date(invoice.issueDate), DATE_FORMAT)}</Table.Cell>
+                        <Table.Cell whiteSpace="nowrap">{format(new Date(invoice.dueDate), DATE_FORMAT)}</Table.Cell>
+                        <Table.Cell whiteSpace="nowrap">{formatCurrency(invoice.total)}</Table.Cell>
                         <Table.Cell>
                           <StatusChip status={invoice.status} />
                         </Table.Cell>
                         <Table.Cell>
                           <Flex gap="2">
-                            <IconButton asChild aria-label="View" size="sm" variant="ghost" minW="10" minH="10">
+                            <IconButton asChild aria-label="View" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }}>
                               <Link to={`/invoices/${invoice.id}`}>
                                 <Icon as={FiEye} />
                               </Link>
                             </IconButton>
-                            <IconButton asChild aria-label="Edit" size="sm" variant="ghost" minW="10" minH="10">
+                            <IconButton asChild aria-label="Edit" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }}>
                               <Link to={`/invoices/edit/${invoice.id}`}>
                                 <Icon as={FiEdit} />
                               </Link>
@@ -307,10 +315,10 @@ export function InvoicesPage() {
               <Dialog.CloseTrigger />
             </Dialog.Header>
             <Dialog.Footer>
-              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting} whiteSpace="nowrap">
                 Cancel
               </Button>
-              <Button colorPalette="red" onClick={handleDelete} loading={deleting}>
+              <Button colorPalette="red" onClick={handleDelete} loading={deleting} whiteSpace="nowrap">
                 Delete invoice
               </Button>
             </Dialog.Footer>

@@ -25,7 +25,7 @@ export function SectionCard({ title, description, endContent, children, bodyProp
         >
           <Flex direction="column" gap="1" minW="0">
             {title && (
-              <Card.Title fontSize="lg" fontWeight="semibold">
+              <Card.Title fontSize="lg" fontWeight="semibold" overflow="hidden" textOverflow="ellipsis">
                 {title}
               </Card.Title>
             )}
@@ -36,7 +36,7 @@ export function SectionCard({ title, description, endContent, children, bodyProp
             )}
           </Flex>
           {endContent && (
-            <Flex alignSelf={{ base: 'stretch', sm: 'auto' }} flexShrink={0}>
+            <Flex alignSelf={{ base: 'stretch', sm: 'auto' }} flexShrink={0} css={{ '& button': { whiteSpace: 'nowrap' } }}>
               {endContent}
             </Flex>
           )}

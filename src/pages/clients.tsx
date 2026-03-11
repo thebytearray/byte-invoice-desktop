@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -15,6 +15,7 @@ import {
 } from '@chakra-ui/react'
 import { FiEdit, FiMail, FiMapPin, FiPhone, FiPlus, FiTrash2, FiUsers, FiX } from 'react-icons/fi'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { toaster } from '@/components/ui/toaster'
 import type { Client } from '@/types'
 import { ResponsiveList } from '@/components/layout/responsive-list'
@@ -22,7 +23,7 @@ import { ScrollableTable } from '@/components/layout/scrollable-table'
 import { EmptyState } from '@/components/saas/empty-state'
 import { PageHeader } from '@/components/saas/page-header'
 import { SectionCard } from '@/components/saas/section-card'
-import { CountryCombobox, StateCombobox } from '@/components/saas/location-select'
+import { LocationSelectGroup } from '@/components/saas/location-select'
 import { Dialog, Field } from '@chakra-ui/react'
 
 const clientSchema = z.object({
@@ -39,7 +40,15 @@ const clientSchema = z.object({
 type ClientFormData = z.infer<typeof clientSchema>
 
 export function ClientsPage() {
-  const { clients, addClient, updateClient, deleteClient, isLoading } = useStore()
+  const { clients, addClient, updateClient, deleteClient, isLoading } = useStore(
+    useShallow((s) => ({
+      clients: s.clients,
+      addClient: s.addClient,
+      updateClient: s.updateClient,
+      deleteClient: s.deleteClient,
+      isLoading: s.isLoading,
+    }))
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -151,7 +160,7 @@ export function ClientsPage() {
         title="Client relationships"
         description="Keep client data accurate, searchable, and ready for invoicing without bouncing between disconnected forms."
         actions={
-          <Button colorPalette="teal" onClick={() => setDialogOpen(true)}>
+          <Button colorPalette="teal" onClick={() => setDialogOpen(true)} whiteSpace="nowrap">
             <Icon as={FiPlus} mr="2" />
             Add client
           </Button>
@@ -175,7 +184,7 @@ export function ClientsPage() {
             />
           </Box>
           {searchTerm && (
-            <Button variant="outline" size="sm" onClick={clearSearch}>
+            <Button variant="outline" size="sm" onClick={clearSearch} whiteSpace="nowrap">
               <Icon as={FiX} mr="2" />
               Clear
             </Button>
@@ -198,7 +207,7 @@ export function ClientsPage() {
           <ResponsiveList
             cards={
               <Flex direction="column" gap="3">
-                {filteredClients
+                {[...filteredClients]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((client) => (
                     <Box
@@ -261,17 +270,17 @@ export function ClientsPage() {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {filteredClients
+                  {[...filteredClients]
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((client) => (
                       <Table.Row key={client.id}>
-                        <Table.Cell>
+                        <Table.Cell minW="0">
                           <Text fontWeight="medium">{client.name}</Text>
                           <Text fontSize="xs" color="fg.muted" mt="1">
                             {client.address}
                           </Text>
                         </Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell minW="0">
                           <Flex direction="column" gap="2" fontSize="sm">
                             <Flex align="center" gap="2">
                               <Icon as={FiMail} boxSize="3.5" color="fg.muted" />
@@ -285,7 +294,7 @@ export function ClientsPage() {
                             )}
                           </Flex>
                         </Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell minW="0">
                           <Flex align="center" gap="2" fontSize="sm" color="fg.muted">
                             <Icon as={FiMapPin} boxSize="3.5" />
                             <Text>
@@ -295,7 +304,7 @@ export function ClientsPage() {
                         </Table.Cell>
                         <Table.Cell>
                           <Flex gap="2">
-                            <IconButton aria-label="Edit" size="sm" variant="ghost" minW="10" minH="10" onClick={() => handleEdit(client)}>
+                            <IconButton aria-label="Edit" size="sm" variant="ghost" minW={{ base: '11', md: '10' }} minH={{ base: '11', md: '10' }} onClick={() => handleEdit(client)}>
                               <Icon as={FiEdit} />
                             </IconButton>
                             <IconButton
@@ -303,8 +312,8 @@ export function ClientsPage() {
                               size="sm"
                               variant="ghost"
                               colorPalette="red"
-                              minW="10"
-                              minH="10"
+                              minW={{ base: '11', md: '10' }}
+                              minH={{ base: '11', md: '10' }}
                               onClick={() => handleDeleteClick(client)}
                             >
                               <Icon as={FiTrash2} />
@@ -355,55 +364,59 @@ export function ClientsPage() {
                     <Input {...form.register('address')} />
                     <Field.ErrorText>{form.formState.errors.address?.message}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root invalid={!!form.formState.errors.city}>
-                    <Field.Label>City</Field.Label>
-                    <Input {...form.register('city')} />
-                    <Field.ErrorText>{form.formState.errors.city?.message}</Field.ErrorText>
-                  </Field.Root>
-                  <Field.Root invalid={!!form.formState.errors.state}>
-                    <Field.Label>State</Field.Label>
-                    <Controller
-                      name="state"
-                      control={form.control}
-                      render={({ field }) => (
-                        <StateCombobox
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Search state or province..."
-                          invalid={!!form.formState.errors.state}
-                        />
-                      )}
-                    />
-                    <Field.ErrorText>{form.formState.errors.state?.message}</Field.ErrorText>
-                  </Field.Root>
-                  <Field.Root invalid={!!form.formState.errors.zipCode}>
+                  <LocationSelectGroup
+                    country={form.watch('country')}
+                    state={form.watch('state')}
+                    city={form.watch('city')}
+                    onCountryChange={(v) => {
+                      form.setValue('country', v)
+                      form.setValue('state', '')
+                      form.setValue('city', '')
+                    }}
+                    onStateChange={(v) => {
+                      form.setValue('state', v)
+                      form.setValue('city', '')
+                    }}
+                    onCityChange={(v) => form.setValue('city', v)}
+                    countryInvalid={!!form.formState.errors.country}
+                    stateInvalid={!!form.formState.errors.state}
+                    cityInvalid={!!form.formState.errors.city}
+                    countryPlaceholder="Select country..."
+                    statePlaceholder="Select state or province..."
+                    cityPlaceholder="Select city..."
+                  >
+                    {({ countrySelect, stateSelect, citySelect }) => (
+                      <>
+                        <Field.Root invalid={!!form.formState.errors.country}>
+                          <Field.Label>Country</Field.Label>
+                          {countrySelect}
+                          <Field.ErrorText>{form.formState.errors.country?.message}</Field.ErrorText>
+                        </Field.Root>
+                        <Field.Root invalid={!!form.formState.errors.state}>
+                          <Field.Label>State</Field.Label>
+                          {stateSelect}
+                          <Field.ErrorText>{form.formState.errors.state?.message}</Field.ErrorText>
+                        </Field.Root>
+                        <Field.Root invalid={!!form.formState.errors.city}>
+                          <Field.Label>City</Field.Label>
+                          {citySelect}
+                          <Field.ErrorText>{form.formState.errors.city?.message}</Field.ErrorText>
+                        </Field.Root>
+                      </>
+                    )}
+                  </LocationSelectGroup>
+                  <Field.Root invalid={!!form.formState.errors.zipCode} gridColumn={{ md: '1 / -1' }}>
                     <Field.Label>ZIP code</Field.Label>
                     <Input {...form.register('zipCode')} />
                     <Field.ErrorText>{form.formState.errors.zipCode?.message}</Field.ErrorText>
                   </Field.Root>
-                  <Field.Root invalid={!!form.formState.errors.country}>
-                    <Field.Label>Country</Field.Label>
-                    <Controller
-                      name="country"
-                      control={form.control}
-                      render={({ field }) => (
-                        <CountryCombobox
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Search country..."
-                          invalid={!!form.formState.errors.country}
-                        />
-                      )}
-                    />
-                    <Field.ErrorText>{form.formState.errors.country?.message}</Field.ErrorText>
-                  </Field.Root>
                 </Flex>
               </Dialog.Body>
               <Dialog.Footer>
-                <Button variant="outline" onClick={handleDialogClose} disabled={isSubmitting}>
+                <Button variant="outline" onClick={handleDialogClose} disabled={isSubmitting} whiteSpace="nowrap">
                   Cancel
                 </Button>
-                <Button type="submit" colorPalette="teal" loading={isSubmitting}>
+                <Button type="submit" colorPalette="teal" loading={isSubmitting} whiteSpace="nowrap">
                   {editingClient ? 'Update client' : 'Add client'}
                 </Button>
               </Dialog.Footer>
@@ -424,10 +437,10 @@ export function ClientsPage() {
               <Dialog.CloseTrigger />
             </Dialog.Header>
             <Dialog.Footer>
-              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting} whiteSpace="nowrap">
                 Cancel
               </Button>
-              <Button colorPalette="red" onClick={handleDeleteConfirm} loading={isDeleting}>
+              <Button colorPalette="red" onClick={handleDeleteConfirm} loading={isDeleting} whiteSpace="nowrap">
                 Delete client
               </Button>
             </Dialog.Footer>
