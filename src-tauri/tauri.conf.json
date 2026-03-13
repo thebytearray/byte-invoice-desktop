@@ -36,6 +36,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
+      "signingIdentity": "-",
       "dmg": {
         "background": "images/background.png",
         "windowSize": {

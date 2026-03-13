@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Country, State, City } from 'country-state-city'
 import {
-  Select,
+  Combobox,
   createListCollection,
+  useFilter,
+  useListCollection,
 } from '@chakra-ui/react'
 
 type CollectionItem = { label: string; value: string }
@@ -28,9 +30,9 @@ export interface LocationSelectGroupProps {
   }) => ReactNode
 }
 
-const selectPositioning = { strategy: 'fixed' as const, hideWhenDetached: true }
+const comboboxPositioning = { strategy: 'fixed' as const, hideWhenDetached: true }
 
-function LocationSelectDropdown({
+function LocationCombobox({
   collection,
   value,
   onValueChange,
@@ -48,35 +50,72 @@ function LocationSelectDropdown({
   invalid?: boolean
 }) {
   return (
-    <Select.Root
+    <Combobox.Root
       collection={collection}
       value={value ? [value] : []}
       onValueChange={(details) => onValueChange(details)}
       disabled={disabled}
       invalid={invalid}
-      positioning={selectPositioning}
+      positioning={comboboxPositioning}
       name={name}
+      placeholder={placeholder}
+      allowCustomValue
+      openOnClick
+      closeOnSelect
     >
-      <Select.HiddenSelect />
-      <Select.Control>
-        <Select.Trigger>
-          <Select.ValueText placeholder={placeholder} />
-        </Select.Trigger>
-        <Select.IndicatorGroup>
-          <Select.Indicator />
-        </Select.IndicatorGroup>
-      </Select.Control>
-      <Select.Positioner>
-        <Select.Content>
-          {collection.items.map((item: CollectionItem) => (
-            <Select.Item key={item.value} item={item}>
-              <Select.ItemText>{item.label}</Select.ItemText>
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Positioner>
-    </Select.Root>
+      <Combobox.Control>
+        <Combobox.Input />
+        <Combobox.IndicatorGroup>
+          <Combobox.ClearTrigger />
+          <Combobox.Trigger />
+        </Combobox.IndicatorGroup>
+      </Combobox.Control>
+      <Combobox.Positioner>
+        <Combobox.Content>
+          <Combobox.Empty>No matches</Combobox.Empty>
+          <Combobox.List>
+            {collection.items.map((item: CollectionItem) => (
+              <Combobox.Item key={item.value} item={item}>
+                <Combobox.ItemText>{item.label}</Combobox.ItemText>
+              </Combobox.Item>
+            ))}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox.Positioner>
+    </Combobox.Root>
   )
+}
+
+function useLocationCollection(
+  predefinedItems: CollectionItem[],
+  currentValue: string,
+  contains: (value: string, query: string) => boolean
+) {
+  const itemsWithCustom = useMemo(() => {
+    const hasCustom =
+      currentValue &&
+      !predefinedItems.some(
+        (i) => i.value.toLowerCase() === currentValue.toLowerCase()
+      )
+    if (hasCustom) {
+      return [{ label: currentValue, value: currentValue }, ...predefinedItems]
+    }
+    return predefinedItems
+  }, [predefinedItems, currentValue])
+
+  const { collection, set } = useListCollection({
+    initialItems: itemsWithCustom,
+    filter: (value, query) =>
+      contains(value, query) ||
+      value.toLowerCase().includes(query.toLowerCase()),
+    limit: 100,
+  })
+
+  useEffect(() => {
+    set(itemsWithCustom)
+  }, [itemsWithCustom, set])
+
+  return collection
 }
 
 export function LocationSelectGroup({
@@ -94,11 +133,9 @@ export function LocationSelectGroup({
   cityPlaceholder = 'Select city...',
   children,
 }: LocationSelectGroupProps) {
-  const countryCollection = useMemo(() => {
+  const countryItems = useMemo(() => {
     const countries = Country.getAllCountries()
-    return createListCollection({
-      items: countries.map((c) => ({ label: c.name, value: c.name })),
-    })
+    return countries.map((c) => ({ label: c.name, value: c.name }))
   }, [])
 
   const selectedCountry = useMemo(() => {
@@ -106,12 +143,10 @@ export function LocationSelectGroup({
     return Country.getAllCountries().find((c) => c.name === country) ?? null
   }, [country])
 
-  const stateCollection = useMemo((): ReturnType<typeof createListCollection<CollectionItem>> => {
-    if (!selectedCountry) return createListCollection<CollectionItem>({ items: [] })
+  const stateItems = useMemo((): CollectionItem[] => {
+    if (!selectedCountry) return []
     const states = State.getStatesOfCountry(selectedCountry.isoCode)
-    return createListCollection({
-      items: states.map((s) => ({ label: s.name, value: s.name })),
-    })
+    return states.map((s) => ({ label: s.name, value: s.name }))
   }, [selectedCountry])
 
   const selectedState = useMemo(() => {
@@ -120,50 +155,82 @@ export function LocationSelectGroup({
     return states.find((s) => s.name === state) ?? null
   }, [selectedCountry, state])
 
-  const cityCollection = useMemo((): ReturnType<typeof createListCollection<CollectionItem>> => {
-    if (!selectedCountry) return createListCollection<CollectionItem>({ items: [] })
+  const cityItems = useMemo((): CollectionItem[] => {
+    if (!selectedCountry) return []
     if (selectedState) {
-      const cities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode)
+      const cities = City.getCitiesOfState(
+        selectedCountry.isoCode,
+        selectedState.isoCode
+      )
       if (cities.length > 0) {
-        return createListCollection({
-          items: cities.map((c) => ({ label: c.name, value: c.name })),
-        })
+        return cities.map((c) => ({ label: c.name, value: c.name }))
       }
     }
     const citiesOfCountry = City.getCitiesOfCountry(selectedCountry.isoCode)
     if (citiesOfCountry && citiesOfCountry.length > 0) {
-      return createListCollection({
-        items: citiesOfCountry.map((c) => ({ label: c.name, value: c.name })),
-      })
+      return citiesOfCountry.map((c) => ({ label: c.name, value: c.name }))
     }
-    return createListCollection<CollectionItem>({ items: [] })
+    return []
   }, [selectedCountry, selectedState])
 
+  const { contains } = useFilter({ sensitivity: 'base' })
+
+  const countryCollection = useLocationCollection(
+    countryItems,
+    country,
+    (value, q) => contains(value, q)
+  )
+
+  const stateCollection = useLocationCollection(
+    stateItems,
+    state,
+    (value, q) => contains(value, q)
+  )
+
+  const cityCollection = useLocationCollection(
+    cityItems,
+    city,
+    (value, q) => contains(value, q)
+  )
+
+  const stateDisabled = !country
+  const cityDisabled =
+    !country || (stateItems.length > 0 && !state)
+
   const countrySelect = (
-    <LocationSelectDropdown
+    <LocationCombobox
       collection={countryCollection}
       value={country}
-      onValueChange={(d) => onCountryChange(d.value[0] ?? '')}
+      onValueChange={(d) => {
+        const v = d.value[0] ?? ''
+        onCountryChange(v)
+        if (v !== country) {
+          onStateChange('')
+          onCityChange('')
+        }
+      }}
       name="country"
       placeholder={countryPlaceholder}
       invalid={countryInvalid}
     />
   )
   const stateSelect = (
-    <LocationSelectDropdown
+    <LocationCombobox
       collection={stateCollection}
       value={state}
-      onValueChange={(d) => onStateChange(d.value[0] ?? '')}
+      onValueChange={(d) => {
+        const v = d.value[0] ?? ''
+        onStateChange(v)
+        if (v !== state) onCityChange('')
+      }}
       name="state"
       placeholder={statePlaceholder}
-      disabled={!country}
+      disabled={stateDisabled}
       invalid={stateInvalid}
     />
   )
-  const cityDisabled = !country || (stateCollection.items.length > 0 && !state)
-
   const citySelect = (
-    <LocationSelectDropdown
+    <LocationCombobox
       collection={cityCollection}
       value={city}
       onValueChange={(d) => onCityChange(d.value[0] ?? '')}
